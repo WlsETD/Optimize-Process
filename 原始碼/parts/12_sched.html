@@ -1,0 +1,122 @@
+  <section class="pg-sched rs" aria-label="排程試算：用實際換線時間">
+    <div class="rshead">
+      <div class="seg" id="rs_sub" role="group" aria-label="排程試算畫面">
+        <button type="button" data-v="calc" class="on">試算比較</button><button type="button" data-v="auto">每天自動調整</button><button type="button" data-v="check">異常值與紀錄品質</button><button type="button" data-v="source">數字從哪來</button>
+      </div>
+      <span class="note">排程不再用固定 0.5 h／線／天，改用機台紀錄的實際換線時間。只讓交期更準，不增加出貨。資料：資料3 九月逐日紀錄。</span>
+    </div>
+
+    <!-- 試算比較 -->
+    <div class="rsv on" id="rs_v_calc" style="grid-template-columns:330px minmax(0,1fr)">
+      <div class="rsc">
+        <h3>輸入這張單</h3>
+        <label>客戶</label>
+        <div class="seg rsseg" id="rs_cust"><button type="button" data-c="乙" class="on">乙 2%／天</button><button type="button" data-c="丙">丙 1%／天</button><button type="button" data-c="甲">甲 無罰則</button></div>
+        <label>插單片數 <span class="tag 示意">示意</span></label>
+        <div class="rsrow"><input id="rs_qty" type="range" min="100" max="2000" step="50" value="600"><span class="rsval num" id="rs_qtyV"></span></div>
+        <label>要求交期 <span class="tag 示意">示意</span></label>
+        <div class="rsrow"><input id="rs_due" type="range" min="1" max="10" step="1" value="4"><span class="rsval num" id="rs_dueV"></span></div>
+        <label>這張單前面已排片數 <span class="tag 示意">示意</span></label>
+        <div class="rsrow"><input id="rs_ahead" type="range" min="0" max="40000" step="100" value="17900"><span class="rsval num" id="rs_aheadV"></span></div>
+        <label>每次換線平均時間 <span class="tag 資料3">資料3：九月 0.90</span></label>
+        <div class="rsrow"><input id="rs_hco" type="range" min="0.5" max="1.4" step="0.01" value="0.90"><span class="rsval num" id="rs_hcoV"></span></div>
+        <p class="note">去年十月約 0.72。可到「每天自動調整」把回測的估計帶回來。</p>
+        <label>預估每天換線次數 <span class="tag 資料3">資料3</span></label>
+        <select id="rs_cmode"><option value="avg">九月平均（固定）</option><option value="type">依日型：一般日與追加單／換零件日分開</option></select>
+        <div id="rs_pbox" hidden>
+          <label>追加單或換零件日占比 <span class="tag 示意">示意</span></label>
+          <div class="rsrow"><input id="rs_pday" type="range" min="0" max="100" step="1" value="46"><span class="rsval num" id="rs_pdayV"></span></div>
+        </div>
+        <p class="note" id="rs_cnote"></p>
+      </div>
+      <div class="rsright">
+        <div class="rscmp">
+          <div class="rsbox">
+            <h3>現行排程：換線每線每天抓 0.5 小時 <span class="tag 個案">個案單</span></h3>
+            <div class="rsbig num" id="rs_oldDay"></div>
+            <dl><dt>每天換線</dt><dd class="num" id="rs_oldCo"></dd><dt>每天產出</dt><dd class="num" id="rs_oldOut"></dd><dt>預估完成</dt><dd class="num" id="rs_oldFin"></dd></dl>
+          </div>
+          <div class="rsbox new">
+            <h3>改用實際換線時間（每次平均 × 預估次數）</h3>
+            <div class="rsbig num" id="rs_newDay"></div>
+            <dl><dt>每天換線</dt><dd class="num" id="rs_newCo"></dd><dt>計算</dt><dd class="num" id="rs_newN"></dd><dt>每天產出</dt><dd class="num" id="rs_newOut"></dd><dt>預估完成</dt><dd class="num" id="rs_newFin"></dd></dl>
+          </div>
+        </div>
+        <div id="rs_result" class="rsres"></div>
+        <div class="rsc rschart"><h3>預估完成日 vs 要求交期（工作日）</h3><div class="cv"><svg id="rs_chC" role="img" aria-label="預估完成日與要求交期比較"></svg></div></div>
+      </div>
+    </div>
+
+    <!-- 每天自動調整 -->
+    <div class="rsv" id="rs_v_auto" style="grid-template-columns:310px minmax(0,1fr)">
+      <div class="rsc">
+        <h3>回測設定（九月 26 天真實紀錄）</h3>
+        <p class="note">每天用「到前一天為止」的紀錄預估當天換線時間，再和當天實際比。前 7 天是暖機，不計誤差。</p>
+        <label>平均的算法</label>
+        <div class="seg rsseg" id="rs_meth"><button type="button" data-m="ewma" class="on">指數加權</button><button type="button" data-m="win">固定窗口</button></div>
+        <div id="rs_alphaBox"><label>α（今天實際占的權重）<span class="tag 我猜的">我猜的</span></label>
+          <div class="rsrow"><input id="rs_alpha" type="range" min="0.02" max="0.4" step="0.01" value="0.10"><span class="rsval num" id="rs_alphaV"></span></div></div>
+        <div id="rs_winBox" hidden><label>窗口天數</label>
+          <div class="rsrow"><input id="rs_win" type="range" min="3" max="26" step="1" value="14"><span class="rsval num" id="rs_winV"></span></div></div>
+        <label>起始值（小時／次）</label>
+        <div class="rsrow"><input id="rs_start" type="range" min="0.5" max="1.2" step="0.01" value="0.72"><span class="rsval num" id="rs_startV"></span></div>
+        <label class="rschk"><input type="checkbox" id="rs_known" checked><span>預估次數時，已知當天有追加單或換零件（九月這種日子平均 7.17 次，一般日 4.43 次）</span></label>
+        <label>異常門檻（同類日平均的幾倍）<span class="tag 我猜的">我猜的</span></label>
+        <div class="rsrow"><input id="rs_kmul" type="range" min="1.2" max="2.5" step="0.05" value="1.5"><span class="rsval num" id="rs_kmulV"></span></div>
+        <label class="rschk"><input type="checkbox" id="rs_excl" checked><span>被標記的日子先不計入平均，人工看過再決定</span></label>
+        <button type="button" class="btn pri" id="rs_apply" style="width:100%;margin-top:10px">把 9/30 之後的估計帶入試算</button>
+        <p class="rsleg"><i style="background:var(--accent)"></i>預估在 ±20% 內<br><i style="background:var(--bad)"></i>誤差超過 ±20%，提醒生管看一下<br><i style="background:var(--idle)"></i>暖機（前 7 天）<br><i style="background:var(--panel);border:2px solid var(--warn)"></i>被標記的異常日</p>
+      </div>
+      <div class="rsautoR">
+        <div class="rsstats">
+          <div class="rsstat"><div class="k">現行排程（每天 2.0 小時）平均誤差</div><div class="v num" id="rs_sOld"></div></div>
+          <div class="rsstat good"><div class="k">自動調整平均誤差</div><div class="v num" id="rs_sNew"></div></div>
+          <div class="rsstat"><div class="k">誤差超過 ±20% 的天數</div><div class="v num" id="rs_sAlert"></div></div>
+          <div class="rsstat"><div class="k">9/30 之後的估計（小時／次）</div><div class="v num" id="rs_sEst"></div></div>
+        </div>
+        <div class="rsc rschart"><h3>每次換線平均時間：實際（點）與系統的預估（線）</h3><div class="cv"><svg id="rs_chA" role="img" aria-label="每次換線平均時間逐日"></svg></div></div>
+        <div class="rsc rschart"><h3>每天換線總時數：預估（點）、實際（灰柱）、現行排程（虛線）</h3><div class="cv"><svg id="rs_chB" role="img" aria-label="每天換線總時數逐日"></svg></div></div>
+      </div>
+    </div>
+
+    <!-- 異常值與紀錄品質 -->
+    <div class="rsv" id="rs_v_check" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr)">
+      <div class="rsc"><h3>異常值：哪幾天最不尋常</h3><div id="rs_anom"></div></div>
+      <div class="rsc">
+        <h3>紀錄品質：上線前要抽查什麼</h3>
+        <div id="rs_qual"></div>
+        <label>假設有幾次換線的時間沒記到（記成 0）<span class="tag 示意">示意</span></label>
+        <div class="rsrow"><input id="rs_miss" type="range" min="0" max="30" step="1" value="0"><span class="rsval num" id="rs_missV"></span></div>
+        <p class="note" id="rs_missN"></p>
+      </div>
+    </div>
+
+    <!-- 數字從哪來 -->
+    <div class="rsv" id="rs_v_source" style="grid-template-columns:minmax(0,1.4fr) minmax(0,1fr)">
+      <div class="rsc">
+        <h3>數字從哪來</h3>
+        <table class="rstbl">
+          <thead><tr><th>項目</th><th>現行排程</th><th>實際（九月）</th><th>出處</th></tr></thead>
+          <tbody>
+            <tr><td>每天可排小時（4 線合計）</td><td class="num">34.35</td><td class="num">34.35</td><td>(760＋133)÷26，資料3</td></tr>
+            <tr><td>每天換線小時</td><td class="num">2.00（0.5×4 線）</td><td class="num">5.12（133÷26）</td><td>個案單／資料3</td></tr>
+            <tr><td>每天換線次數</td><td>—</td><td class="num">5.69（148÷26）</td><td>資料3</td></tr>
+            <tr><td>一般日／追加單或換零件日換線次數</td><td>—</td><td class="num">4.43／7.17</td><td>資料3 兩張表對照</td></tr>
+            <tr><td>每天產出（150 片／小時）</td><td class="num">4,852 片</td><td class="num">4,385 片</td><td>推算；約等於九月出貨 114,000÷26</td></tr>
+            <tr><td>每月差距</td><td colspan="3" style="text-align:left">約 81 小時、1.2 萬片（133−52）</td></tr>
+          </tbody>
+        </table>
+        <p class="note">模擬器「功能與月度效益」裡的「排程用實際換線時間」就是這一項：模型假設插單擾動 −0.20【我猜的】，準時率約 +1.6 個百分點，不增加出貨。</p>
+      </div>
+      <div class="rsc">
+        <h3>這一頁做什麼、不做什麼</h3>
+        <div class="rswarn">
+          <p>只示範「用什麼換線時間試算」，不示範「增加產能」：它不會縮短換線，也不會讓出貨變多，只是讓回覆客戶的交期更接近實際。</p>
+          <p>依日型的換線次數（4.43／7.17）是九月 26 天的觀察，不是保證。</p>
+          <p>罰款 ＝ 片數 × 1,200 元 × 罰款率 × 晚的天數；甲沒有合約罰則，只顯示晚幾天。</p>
+          <p>α 與異常門檻是【我猜的】；插單片數、前面已排片數、要求交期都是示意，要換成真實排程。</p>
+          <p>回測只有九月 26 天，不代表未來的誤差。</p>
+        </div>
+      </div>
+    </div>
+  </section>

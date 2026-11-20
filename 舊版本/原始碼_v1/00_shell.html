@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>昇嶺電子 工廠流水線實戰模擬</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=Noto+Sans+TC:wght@400;500;700;900&display=swap" media="print" onload="this.media='all'">
+<style>
+/* 版面：一個廠控台。黏頂播放列 → 3D 廠房 → 2D 部門流程 → 當天時間軸 → 月度效益。設計系統比照「昇嶺電子 Demo 設計系統」。 */
+:root{
+  --bg:#f3f5f7; --panel:#ffffff; --ink:#14202b; --ink-2:#4a5866; --ink-3:#6b7785;
+  --line:#d9dfe5; --accent:#0f5e8c; --accent-soft:#e3eef6; --on-accent:#ffffff;
+  --good:#16794a; --good-bg:#e4f3eb; --warn:#a86400; --warn-bg:#fbf0dc; --bad:#b4282e; --bad-bg:#fbe5e5;
+  --s0:#2e9e62; --s1:#2a78d6; --s2:#eb6834; --s3:#d55181; --s4:#7b8794; --idle:#c9d1d9; --future:#e9edf1; --a1:#d99a14;
+  --k-line:#06a648; --k-talk:#a86400; --k-sys:#0f5e8c; --k-card:#16794a; --k-paper:#56616d;
+  --hud:rgba(255,255,255,.9);
+  --f-body:"Noto Sans TC","PingFang TC","Microsoft JhengHei",sans-serif;
+  --f-num:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+  /* 圖表別名（已驗證色盤） */
+  --surface-1:var(--panel); --text-primary:var(--ink); --text-secondary:var(--ink-2); --muted:var(--ink-3);
+  --grid:var(--line); --axis:#c3c2b7; --series-1:#2a78d6; --series-2:#eb6834; --series-3:#1baf7a; --up-good:var(--good); --critical:var(--bad);
+}
+:root[data-theme="dark"]{
+  --bg:#0f151b; --panel:#17202a; --ink:#e8edf2; --ink-2:#aab6c2; --ink-3:#8b98a5;
+  --line:#2a3644; --accent:#5aa9d8; --accent-soft:#1b3346; --on-accent:#0f151b;
+  --good:#4cc58a; --good-bg:#143326; --warn:#e4a443; --warn-bg:#3a2b12; --bad:#f07a7e; --bad-bg:#3d1b1d;
+  --s0:#3fb878; --s1:#3987e5; --s2:#d95926; --s3:#e87ba4; --s4:#8b98a5; --idle:#3a4756; --future:#1f2a35; --a1:#e8b23a;
+  --hud:rgba(23,32,42,.92); --axis:#383835; --series-1:#3987e5; --series-2:#d95926; --series-3:#199e70; color-scheme:dark;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.6}
+h1,h2,h3{text-wrap:balance;margin:0;line-height:1.3}
+h1{font-size:20px;font-weight:900;letter-spacing:.02em}
+h2{font-size:17px;font-weight:700}
+h3{font-size:14px;font-weight:700}
+p{margin:0}
+.num{font-family:var(--f-num);font-variant-numeric:tabular-nums}
+.muted{color:var(--ink-2)} .note{font-size:12px;color:var(--ink-3)}
+.guess{color:var(--warn);font-weight:700}
+.wrap{max-width:1280px;margin:0 auto;padding:16px max(16px,env(safe-area-inset-left,0px)) 90px;display:grid;grid-template-columns:minmax(0,1fr);gap:14px}
+.top{display:flex;flex-wrap:wrap;gap:8px 20px;align-items:flex-end;justify-content:space-between}
+.top .sub{color:var(--ink-2);font-size:13px;max-width:78ch}
+.tags{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.tag{display:inline-flex;align-items:center;font-size:11px;font-weight:700;padding:1px 8px;border-radius:99px;white-space:nowrap;border:1px solid transparent}
+.tag.real,.tag.資料3,.tag.個案,.tag.決議{background:var(--good-bg);color:var(--good)}
+.tag.model,.tag.demo{background:var(--accent-soft);color:var(--accent)}
+.tag.calc,.tag.推算{background:var(--accent-soft);color:var(--accent)}
+.tag.guess,.tag.我猜的{background:var(--warn-bg);color:var(--warn)}
+.tag.示意{background:var(--future);color:var(--ink-2)}
+/* 播放列 */
+.bar{position:sticky;top:0;z-index:20;background:var(--bg);padding-block:8px;border-bottom:1px solid var(--line);display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden;background:var(--panel)}
+.seg button{border:0;background:transparent;color:var(--ink-2);font:inherit;font-size:14px;font-weight:700;padding:8px 14px;cursor:pointer;min-height:40px}
+.seg button+button{border-left:1px solid var(--line)}
+.seg button.on{background:var(--accent);color:var(--on-accent)}
+.seg.mode button.on[data-m="before"]{background:var(--bad);color:#fff}
+.seg.mode button.on[data-m="after"]{background:var(--good);color:#fff}
+.btn{border:1px solid var(--line);background:var(--panel);color:var(--ink);font:inherit;font-size:14px;font-weight:700;padding:8px 14px;border-radius:8px;cursor:pointer;min-height:40px}
+.btn.pri{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
+.btn.sm{min-height:32px;padding:4px 10px;font-size:13px}
+.btn:focus-visible,.seg button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+select{font:inherit;font-size:14px;padding:7px 8px;border-radius:8px;border:1px solid var(--line);background:var(--panel);color:var(--ink);min-height:40px}
+.bar .clock{font-family:var(--f-num);font-size:22px;font-weight:600;margin-left:auto}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px;display:grid;grid-template-columns:minmax(0,1fr);gap:10px;min-width:0}
+.cardhead{display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center;justify-content:space-between}
+.cardhead .seg button{padding:6px 10px;font-size:13px;min-height:34px}
+/* 3D */
+.stage{position:relative;width:100%;border-radius:8px;overflow:hidden;background:var(--future);min-height:300px}
+.stage canvas{display:block;width:100%;touch-action:none}
+.hud{position:absolute;pointer-events:none;font-size:13px}
+.hud-tl{left:10px;top:10px;background:var(--hud);border:1px solid var(--line);border-radius:8px;padding:6px 10px;display:grid}
+.hud-tl .c{font-family:var(--f-num);font-size:24px;font-weight:600;line-height:1.1}
+.hud-tl .m{font-size:12px;font-weight:700}
+.hud-tl .m.before{color:var(--bad)} .hud-tl .m.after{color:var(--good)}
+.hud-tr{right:10px;top:10px;display:flex;gap:6px;flex-direction:column;align-items:flex-end}
+.chip{display:inline-block;font-size:12px;font-weight:700;padding:2px 8px;border-radius:999px;background:var(--warn-bg);color:var(--warn);border:1px solid var(--line)}
+.hud-cap{left:10px;right:10px;bottom:10px;background:var(--hud);border:1px solid var(--line);border-left:4px solid var(--ink-3);border-radius:8px;padding:8px 12px;font-size:14px;font-weight:500;pointer-events:auto;display:flex;flex-wrap:wrap;gap:6px 10px;align-items:center}
+.hud-cap.bad{border-left-color:var(--bad)} .hud-cap.good{border-left-color:var(--good)} .hud-cap.warn{border-left-color:var(--warn)}
+.hud-cap .t{font-family:var(--f-num);color:var(--ink-3);font-size:12px}
+.legend{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:12px;color:var(--ink-2);align-items:center}
+.legend i{display:inline-block;width:11px;height:11px;border-radius:3px;margin-right:4px;vertical-align:-1px}
+.fail{padding:24px;color:var(--ink-2);font-size:14px}
+/* 2D */
+.flowscroll{overflow-x:auto;border-radius:8px;background:var(--bg);border:1px solid var(--line)}
+#f2{display:block;width:100%;min-width:980px;height:auto;font-family:var(--f-body)}
+#f2 .nd rect{fill:var(--panel);stroke:var(--line);stroke-width:1.5}
+#f2 .nd .h{fill:var(--ink);font-size:16px;font-weight:700}
+#f2 .nd .s{fill:var(--ink-2);font-size:13px}
+#f2 .nd.on rect{stroke:var(--accent);stroke-width:2.5} #f2 .nd.on .s{fill:var(--accent)}
+#f2 .nd.warn rect{stroke:var(--warn);stroke-width:2.5} #f2 .nd.warn .s{fill:var(--warn)}
+#f2 .nd.bad rect{stroke:var(--bad);stroke-width:2.5} #f2 .nd.bad .s{fill:var(--bad)}
+#f2 .nd.good rect{stroke:var(--good);stroke-width:2.5} #f2 .nd.good .s{fill:var(--good)}
+#f2 .nd.dim{opacity:.35}
+#f2 .ed{fill:none;stroke:var(--ink-3);stroke-width:1.5;stroke-dasharray:5 5;opacity:.4}
+#f2 .ed.used{opacity:.75;stroke-dasharray:none}
+#f2 .ed.live{stroke:var(--accent);opacity:1;stroke-width:2.5;stroke-dasharray:5 5;animation:dash .6s linear infinite}
+#f2 .el{fill:var(--ink-3);font-size:11px}
+@keyframes dash{to{stroke-dashoffset:-10}}
+#f2 .pk{fill:var(--accent)}
+#f2 .pk.k-LINE{fill:var(--k-line)} #f2 .pk.k-口頭{fill:var(--k-talk)} #f2 .pk.k-系統{fill:var(--k-sys)} #f2 .pk.k-卡片{fill:var(--k-card)} #f2 .pk.k-工單,#f2 .pk.k-料{fill:var(--k-paper)} #f2 .pk.k-板{fill:var(--s0)}
+#f2 .pkl{fill:var(--ink);font-size:13px;font-weight:700;paint-order:stroke;stroke:var(--bg);stroke-width:4px}
+#f2 .sec{fill:var(--ink-2);font-size:14px;font-weight:700}
+#f2 .ln{fill:var(--ink);font-size:17px;font-weight:700}
+#f2 .lm{fill:var(--ink-3);font-size:12px} #f2 .lm.a1{fill:var(--a1);font-weight:700}
+#f2 .st rect{fill:var(--panel);stroke-width:2}
+#f2 .st text{font-size:13px;fill:var(--ink-2)}
+#f2 .st.run rect{stroke:var(--s0)} #f2 .st.co rect{stroke:var(--s1);fill:var(--accent-soft)}
+#f2 .st.mw rect{stroke:var(--s2);fill:var(--warn-bg)} #f2 .st.flt rect{stroke:var(--s3);fill:var(--bad-bg)} #f2 .st.rt rect{stroke:var(--s4)}
+#f2 .stt{font-size:14px;font-weight:700}
+#f2 .stt.run{fill:var(--s0)} #f2 .stt.co{fill:var(--s1)} #f2 .stt.mw{fill:var(--s2)} #f2 .stt.flt{fill:var(--s3)} #f2 .stt.rt{fill:var(--s4)}
+#f2 .rail{fill:none;stroke:var(--line);stroke-width:2}
+#f2 .dot{fill:var(--s0)} #f2 .dot.a1{fill:var(--a1)}
+#f2 .ds rect{fill:var(--panel);stroke:var(--line);stroke-width:1.5}
+#f2 .ds .h{fill:var(--ink);font-size:16px;font-weight:700} #f2 .ds .s{fill:var(--ink-2);font-size:13px}
+#f2 .ds.idle rect{stroke:var(--warn);stroke-width:2.5} #f2 .ds.idle .s{fill:var(--warn)}
+#f2 .ds.qa rect{stroke:var(--bad);stroke-width:2.5} #f2 .ds.qa .s{fill:var(--bad)}
+#f2 .ship rect{fill:var(--accent-soft);stroke:var(--accent);stroke-width:2}
+#f2 .ship .h{fill:var(--ink);font-size:16px;font-weight:700}
+#f2 .ship .v{fill:var(--accent);font-size:22px;font-weight:600;font-family:var(--f-num)}
+#f2 .ship .s{fill:var(--ink-2);font-size:12px}
+/* 時間軸＋事件＋當日 KPI */
+.lower{display:grid;grid-template-columns:minmax(0,1fr) 320px;gap:14px}
+.tl{display:grid;grid-template-columns:104px minmax(0,1fr);gap:6px 10px;align-items:center}
+.tl .lab{font-size:13px;font-weight:700;line-height:1.2}
+.tl .lab small{display:block;font-weight:400;color:var(--ink-3);font-size:11px}
+.track{position:relative;height:22px;background:var(--s0);border-radius:4px;overflow:hidden}
+.track .sg{position:absolute;top:0;bottom:0}
+.sg.co{background:var(--s1)} .sg.mw{background:var(--s2)} .sg.flt{background:var(--s3)} .sg.rt{background:var(--idle)}
+.track .a1w{position:absolute;top:0;bottom:0;box-shadow:inset 0 -4px 0 var(--a1)}
+.track .fut{position:absolute;top:0;bottom:0;right:0;background:var(--future);opacity:.82}
+.track .ph{position:absolute;top:0;bottom:0;width:2px;background:var(--ink)}
+.axis{position:relative;height:16px;font-size:11px;color:var(--ink-3);font-family:var(--f-num)}
+.axis span{position:absolute;transform:translateX(-50%)}
+.scrub{grid-column:2;width:100%;margin:0;accent-color:var(--accent)}
+.kpis{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;align-content:start}
+.kpi{border:1px solid var(--line);border-radius:8px;padding:8px 10px;border-left:4px solid var(--ink-3);min-width:0}
+.kpi.bad{border-left-color:var(--bad)} .kpi.good{border-left-color:var(--good)}
+.kpi .l{font-size:12px;color:var(--ink-2)}
+.kpi .v{font-family:var(--f-num);font-size:21px;font-weight:600;line-height:1.25}
+.kpi .v small{font-size:12px;margin-left:2px;font-family:var(--f-body)}
+.kpi .v.t{font-family:var(--f-body);font-size:15px;font-weight:700;line-height:1.35}
+.kpi .o{font-size:11px;color:var(--ink-3)}
+.feed{list-style:none;margin:0;padding:0;display:grid;gap:4px;font-size:14px;max-height:340px;overflow:auto}
+.feed li{display:grid;grid-template-columns:50px minmax(0,1fr);gap:8px}
+.feed .t{font-family:var(--f-num);color:var(--ink-3);font-size:13px}
+.feed li.bad .x{color:var(--bad);font-weight:700} .feed li.good .x{color:var(--good);font-weight:700} .feed li.warn .x{color:var(--warn);font-weight:700}
+.feed li.fut{opacity:.32}
+.feed .tag{margin-left:6px;vertical-align:1px}
+/* 月度 */
+.month{display:grid;grid-template-columns:minmax(0,1fr) minmax(330px,1fr);gap:14px;align-items:start}
+label.ck{display:flex;gap:8px;align-items:flex-start;padding:7px 8px;border-radius:8px;cursor:pointer}
+label.ck:hover{background:var(--bg)}
+label.ck input{margin:3px 0 0;accent-color:var(--accent);flex:none;width:16px;height:16px}
+.krow{display:grid;grid-template-columns:1fr auto auto auto;gap:8px;align-items:center;padding:6px 2px;border-bottom:1px solid var(--line);cursor:pointer}
+.krow:hover{background:var(--bg)}
+.kn{font-size:13px;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.kn em{font-style:normal;color:var(--ink-3);font-size:11px}
+.kv{font-family:var(--f-num);font-variant-numeric:tabular-nums;font-size:13px;text-align:right;min-width:62px}
+.kv.b{color:var(--ink-2)} .kv.a{font-weight:600}
+.kd{font-family:var(--f-num);font-size:12px;text-align:right;min-width:64px;font-weight:600}
+.kd.up{color:var(--good)} .kd.dn{color:var(--bad)} .kd.fl{color:var(--ink-3)}
+.khow{grid-column:1/-1;font-size:12px;color:var(--ink-2);background:var(--bg);border-radius:8px;padding:7px 9px;margin:2px 0 4px;display:none}
+.krow.open .khow{display:block}
+.verdict{font-size:11px;font-weight:700;padding:1px 7px;border-radius:99px}
+.verdict.ok{background:var(--good-bg);color:var(--good)} .verdict.no{background:var(--bad-bg);color:var(--bad)}
+.strength{display:flex;gap:8px;align-items:center;font-size:13px;color:var(--ink-2)}
+.strength input{accent-color:var(--accent);width:140px}
+.charts{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);gap:14px}
+canvas#trend{display:block;width:100%;height:262px}
+canvas#stops{display:block;width:100%;height:230px}
+.chipbar{display:flex;gap:5px;flex-wrap:wrap}
+.mchip{font:inherit;font-size:12px;padding:4px 10px;border-radius:999px;cursor:pointer;border:1px solid var(--line);background:var(--panel);color:var(--ink-2)}
+.mchip.on{background:var(--accent);color:var(--on-accent);border-color:var(--accent);font-weight:700}
+.ckey{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--ink-2)}
+.ckey i{width:14px;height:3px;border-radius:2px;display:inline-block;margin-right:5px;vertical-align:3px}
+.tip{position:absolute;display:none;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:7px 9px;font-size:12px;pointer-events:none;box-shadow:0 6px 20px rgba(0,0,0,.12);z-index:5;min-width:150px}
+.tip .tr{display:flex;align-items:center;gap:6px;margin-top:3px;white-space:nowrap}
+.tip .tr i{width:8px;height:8px;border-radius:2px;flex:none} .tip .tr i.no{background:transparent}
+.tip .tr span{margin-left:auto;font-family:var(--f-num);font-weight:600}
+.cwrap{position:relative}
+table{width:100%;border-collapse:collapse;font-size:12px}
+th,td{padding:5px 7px;text-align:right;border-bottom:1px solid var(--line);font-family:var(--f-num);white-space:nowrap}
+th:first-child,td:first-child{text-align:left;font-family:var(--f-body)}
+th{color:var(--ink-2);font-weight:500;position:sticky;top:0;background:var(--panel)}
+.tbl{max-height:380px;overflow:auto}
+.srcgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:8px}
+.srcgrid>div{background:var(--bg);border-radius:8px;padding:9px 11px}
+.banner{border-left:4px solid var(--accent);background:var(--accent-soft);padding:10px 14px;border-radius:0 8px 8px 0;font-size:15px}
+/* 浮動系統圖標 */
+.dock{position:fixed;right:16px;bottom:16px;display:flex;flex-direction:column-reverse;gap:9px;z-index:30;align-items:flex-end}
+.fab{width:48px;height:48px;border-radius:14px;border:1px solid var(--line);background:var(--panel);color:var(--accent);cursor:pointer;display:grid;place-items:center;position:relative;box-shadow:0 5px 18px rgba(0,0,0,.16)}
+.fab:hover{transform:translateY(-2px)}
+.fab svg{width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.fab .lb{position:absolute;right:58px;top:50%;transform:translateY(-50%);background:var(--ink);color:var(--panel);font-size:12px;font-weight:700;padding:5px 9px;border-radius:8px;white-space:nowrap;opacity:0;pointer-events:none;transition:opacity .12s}
+.fab:hover .lb,.fab:focus-visible .lb{opacity:1}
+.fab .lb small{display:block;font-weight:400;opacity:.8;font-size:10px}
+.dock .hint{background:var(--panel);border:1px solid var(--line);border-radius:999px;padding:4px 10px;font-size:11px;color:var(--ink-2);box-shadow:0 4px 14px rgba(0,0,0,.1)}
+.ovl{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:60;display:none;padding:22px}
+.ovl.on{display:block}
+.ovl .box{background:var(--panel);border-radius:10px;height:100%;display:flex;flex-direction:column;overflow:hidden}
+.ovl .hd{display:flex;align-items:center;gap:10px;padding:9px 12px;border-bottom:1px solid var(--line)}
+.ovl iframe{flex:1;width:100%;border:0;background:#fff}
+.toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);background:var(--ink);color:var(--panel);padding:8px 14px;border-radius:8px;font-size:13px;z-index:70;opacity:0;transition:opacity .2s;pointer-events:none}
+.toast.on{opacity:1}
+@media (max-width:980px){ .lower,.month,.charts{grid-template-columns:minmax(0,1fr)} }
+@media (max-width:560px){ h1{font-size:18px} .bar .clock{font-size:18px} .seg button{padding:7px 10px;font-size:13px} .tl{grid-template-columns:66px minmax(0,1fr)} .hud-tl .c{font-size:18px} .hud-cap{font-size:13px} .hud-tr{display:none} .kpis{grid-template-columns:minmax(0,1fr)} }
+@media (prefers-reduced-motion: reduce){ #f2 .ed.live{animation:none} }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div>
+      <h1>昇嶺電子 工廠流水線實戰模擬：從接單到出貨</h1>
+      <p class="sub">重播 9/17（週四）這一天：客戶甲一則 LINE 追加 800 片 A1，從老闆、業務、生管、倉庫、SMT、後段、品保一路到出貨。切換「導入前／導入後」看同一天。月度效益在下方。昇嶺電子為個案公司。</p>
+    </div>
+    <div class="tags">
+      <span class="tag 資料3">資料3／個案</span><span class="tag 推算">推算／模擬</span><span class="tag 示意">示意</span><span class="tag 我猜的">我猜的</span>
+      <button type="button" class="btn sm" id="theme">深色</button>
+    </div>
+  </header>
+
+  <div class="bar" role="toolbar" aria-label="播放控制">
+    <div class="seg mode" role="group" aria-label="做法">
+      <button type="button" data-m="before" class="on">導入前：9/17 實際</button>
+      <button type="button" data-m="after">導入後：<span id="m-after">入口＋閘門</span></button>
+    </div>
+    <button type="button" class="btn pri" id="play">❚❚ 暫停</button>
+    <button type="button" class="btn" id="restart">⟲ 從 08:00</button>
+    <label class="note" for="speed">速度</label>
+    <select id="speed"><option value="0.5">0.5×</option><option value="1" selected>1×</option><option value="2">2×</option><option value="4">4×</option></select>
+    <span class="clock" id="clock">08:00</span>
+  </div>
+
+  <section class="card" aria-label="3D 廠房">
+    <div class="cardhead">
+      <h2>3D 廠房</h2>
+      <div class="seg views" role="group" aria-label="鏡頭">
+        <button type="button" data-v="auto" class="on">自動運鏡</button>
+        <button type="button" data-v="overview">全廠</button>
+        <button type="button" data-v="office">辦公室</button>
+        <button type="button" data-v="wh">倉庫</button>
+        <button type="button" data-v="smt">SMT 線</button>
+        <button type="button" data-v="down">後段與出貨</button>
+      </div>
+    </div>
+    <div class="stage" id="f3">
+      <div class="hud hud-tl"><span class="c" id="h-clock">08:00</span><span class="m before" id="h-mode">導入前：9/17 實際</span></div>
+      <div class="hud hud-tr"><span class="chip" id="h-slow" hidden>慢動作</span></div>
+      <div class="hud hud-cap" id="h-cap"><span class="t" id="h-capt">08:00</span><span id="h-capx"></span><span class="tag" id="h-capsrc"></span></div>
+    </div>
+    <div class="legend">
+      <span><i style="background:var(--s0)"></i>運轉</span><span><i style="background:var(--s1)"></i>換線</span><span><i style="background:var(--s2)"></i>等料</span><span><i style="background:var(--s3)"></i>拋料／故障</span><span><i style="background:var(--idle)"></i>平日本來就有的停機</span><span><i style="background:var(--a1)"></i>A1 插單的板子</span>
+      <span style="margin-left:6px">訊息：</span><span><i style="background:var(--k-line)"></i>LINE</span><span><i style="background:var(--k-talk)"></i>口頭</span><span><i style="background:var(--k-sys)"></i>系統</span><span><i style="background:var(--k-card)"></i>可交日卡片</span><span><i style="background:var(--k-paper)"></i>工單／料</span>
+      <span class="note">拖曳旋轉、滾輪或雙指縮放；一動手就停止自動運鏡。</span>
+    </div>
+  </section>
+
+  <section class="card" aria-label="2D 部門流程">
+    <div class="cardhead"><h2>2D 部門流程</h2><span class="note">訊息怎麼在部門之間傳、四條線每一站在做什麼、板子怎麼流到後段與出貨。和 3D 同一個時鐘。</span></div>
+    <div class="flowscroll"><svg id="f2" viewBox="0 0 1500 500" role="img" aria-label="部門與產線流程動畫"></svg></div>
+  </section>
+
+  <section class="card" aria-label="當天時間軸">
+    <div class="lower">
+      <div style="display:grid;gap:10px;min-width:0">
+        <div class="tl" id="tl"></div>
+        <ol class="feed" id="feed"></ol>
+      </div>
+      <div class="kpis" id="kpis"></div>
+    </div>
+    <p class="note" id="daynote"></p>
+  </section>
+
+  <div class="banner" id="banner"></div>
+
+  <section class="month">
+    <div class="card">
+      <div class="cardhead"><h2>導入哪些功能</h2><span class="note" id="fcount"></span></div>
+      <div id="feats" style="display:grid;grid-template-columns:1fr 1fr;gap:2px"></div>
+      <div class="strength"><label for="str">效果強度</label><input type="range" id="str" min="0" max="100" step="5" value="100"><b class="num" id="strv">1.00</b><span class="note">1.00＝我們假設的完整效果，不是實測</span></div>
+      <p class="note">第一階段＝入口＋閘門（本次試點範圍）。其餘為第二階段，勾選只為比較模擬效益。勾選會同時改變上方「導入後」的重播。</p>
+    </div>
+    <div class="card">
+      <div class="cardhead"><h2>月度指標：導入前 → 導入後</h2><button type="button" class="btn sm" id="tblbtn">資料表</button></div>
+      <p class="note">導入前＝2026/09 實際值（資料1）。導入後＝實際值＋月度模型差額。點任一列看算法與來源。</p>
+      <div id="kpi"></div>
+    </div>
+  </section>
+
+  <section class="charts">
+    <div class="card">
+      <h2>十二個月歷史，與往後三個月的兩條路</h2>
+      <div class="chipbar" id="chips"></div>
+      <div class="cwrap"><canvas id="trend" aria-label="趨勢圖"></canvas><div class="tip" id="ttip"></div></div>
+      <div class="ckey"><span><i style="background:var(--series-1)"></i>歷史實際（資料1）</span><span><i style="background:var(--series-2)"></i>不導入（推算）</span><span><i style="background:var(--series-3)"></i>導入（模擬）</span></div>
+    </div>
+    <div class="card">
+      <h2>每月工時去哪裡了</h2>
+      <p class="note">開機 1,003 h 不變；停機減少，正常運轉才增加。</p>
+      <canvas id="stops" aria-label="停機工時組成"></canvas>
+      <div class="ckey"><span><i style="background:var(--series-1)"></i>導入前（九月實際）</span><span><i style="background:var(--series-2)"></i>導入後（模擬）</span></div>
+    </div>
+  </section>
+
+  <section class="card" id="tblcard" hidden>
+    <div class="cardhead"><h2>資料表</h2><span class="note">可複製。</span></div>
+    <div class="tbl" id="tbl"></div>
+  </section>
+
+  <section class="card">
+    <h2>這份模擬哪裡可信，哪裡不可信</h2>
+    <div class="srcgrid" id="srcnotes"></div>
+    <p class="banner" style="font-size:14px">對外說法：<b>進入試點驗證</b>。模擬顯示在假設效果下月出貨與準時率可能達到門檻，不寫成已達成，也不是承諾。</p>
+  </section>
+</div>
+
+<div class="dock" id="dock"></div>
+<div class="toast" id="toast"></div>
+<div class="ovl" id="ovl">
+  <div class="box">
+    <div class="hd"><b id="ovlT" style="font-size:13px">系統模擬 Demo</b><span class="note" id="ovlS"></span><span style="flex:1"></span>
+      <a class="btn sm" id="ovlLink" href="https://claude.ai/artifact/L9FwGEkQFPWerwtgGv2SfZ" target="_blank" rel="noopener" style="text-decoration:none">線上版（新分頁）</a><button type="button" class="btn sm" id="ovlNew">離線版新視窗</button><button type="button" class="btn sm" id="ovlX">關閉</button></div>
+    <iframe id="ovlF" title="系統模擬 Demo"></iframe>
+  </div>
+</div>
+<script>
+/*VENDOR*/
+</script>
+<script>
+"use strict";
+/*PARTS*/
+</script>
+</body>
+</html>

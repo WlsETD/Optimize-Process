@@ -1,0 +1,29 @@
+{
+  "name": "shengling-rush-entry-server",
+  "private": true,
+  "type": "module",
+  "description": "昇嶺電子 單一插單入口 正式版後端（階段 B）",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "start": "tsx src/server.ts",
+    "dev": "tsx watch src/server.ts",
+    "migrate": "tsx src/db/migrate.ts",
+    "test": "node --import tsx --test test/*.test.ts",
+    "typecheck": "tsc --noEmit",
+    "person": "tsx src/cli/person.ts"
+  },
+  "dependencies": {
+    "@hono/node-server": "1.19.18",
+    "hono": "4.13.16",
+    "pg": "8.23.1",
+    "tsx": "4.23.15"
+  },
+  "devDependencies": {
+    "@electric-sql/pglite": "0.5.14",
+    "@types/node": "24.19.2",
+    "@types/pg": "8.23.1",
+    "typescript": "5.9.3"
+  }
+}

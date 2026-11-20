@@ -1,0 +1,976 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+</head>
+<body>
+<div style="background:#fff4e5;border-bottom:2px solid #e8a33d;padding:10px 16px;font:14px/1.5 system-ui,sans-serif;color:#5a3a00"><b>舊版 Demo（早期單檔，僅存檔）：</b>本檔的效益（每月約 341 萬、投入 49 萬含飛達料車 24 萬）、換線外部化與「多停 10.9 h／1,635 片」等數字已作廢，請改看正式模擬器。下方「這個 Demo 用到的假設」全部是【我猜的】。</div>
+<title>昇嶺插單閘門 Demo</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+/* Layout: one guided page in three acts, plant-console look from 昇嶺電子 Demo 設計系統. Sticky guide bar on top; each act is a stack of cards. */
+:root{
+  --bg:#f3f5f7; --panel:#ffffff; --ink:#14202b; --ink-2:#4a5866; --ink-3:#6b7785;
+  --line:#d9dfe5; --accent:#0f5e8c; --accent-soft:#e3eef6; --on-accent:#ffffff;
+  --good:#16794a; --good-bg:#e4f3eb; --warn:#a86400; --warn-bg:#fbf0dc; --bad:#b4282e; --bad-bg:#fbe5e5;
+  --s1:#2a78d6; --s2:#eb6834; --s3:#d55181; --s4:#7b8794; --idle:#c9d1d9; --future:#e9edf1;
+  --f-body:"Noto Sans TC","PingFang TC","Microsoft JhengHei",sans-serif;
+  --f-num:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0f151b; --panel:#17202a; --ink:#e8edf2; --ink-2:#aab6c2; --ink-3:#8b98a5;
+    --line:#2a3644; --accent:#5aa9d8; --accent-soft:#1b3346; --on-accent:#0f151b;
+    --good:#4cc58a; --good-bg:#143326; --warn:#e4a443; --warn-bg:#3a2b12; --bad:#f07a7e; --bad-bg:#3d1b1d;
+    --s1:#3987e5; --s2:#d95926; --s3:#e87ba4; --s4:#8b98a5; --idle:#3a4756; --future:#1f2a35; color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0f151b; --panel:#17202a; --ink:#e8edf2; --ink-2:#aab6c2; --ink-3:#8b98a5;
+  --line:#2a3644; --accent:#5aa9d8; --accent-soft:#1b3346; --on-accent:#0f151b;
+  --good:#4cc58a; --good-bg:#143326; --warn:#e4a443; --warn-bg:#3a2b12; --bad:#f07a7e; --bad-bg:#3d1b1d;
+  --s1:#3987e5; --s2:#d95926; --s3:#e87ba4; --s4:#8b98a5; --idle:#3a4756; --future:#1f2a35; color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.6}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--bg)}
+h1,h2,h3{text-wrap:balance;margin:0;line-height:1.3}
+h1{font-size:20px;font-weight:900;letter-spacing:.02em}
+h2{font-size:18px;font-weight:700}
+h3{font-size:15px;font-weight:700}
+p{margin:0}
+.num{font-family:var(--f-num);font-variant-numeric:tabular-nums}
+.muted{color:var(--ink-2)} .small{font-size:13px} .note{font-size:12px;color:var(--ink-3)}
+.lead{font-size:17px;line-height:1.7;max-width:62ch}
+.guess{color:var(--warn);font-weight:700;font-size:12px;white-space:nowrap}
+code{font-family:var(--f-num);font-size:.9em;background:color-mix(in srgb,var(--line) 40%,transparent);padding:1px 4px;border-radius:4px}
+a{color:var(--accent);font-weight:500;text-decoration:none} a:hover{text-decoration:underline}
+a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,summary:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.wrap{max-width:1120px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+header.top{background:var(--panel);border-bottom:1px solid var(--line)}
+header.top .wrap{padding-block:14px 12px;display:flex;flex-wrap:wrap;gap:4px 16px;align-items:baseline}
+header.top .sub{font-size:13px;color:var(--ink-2)}
+main{padding-block:16px 64px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:16px;min-width:0}
+.stack{display:grid;gap:16px}
+.g2{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px}
+.insight{border-left:4px solid var(--accent);background:var(--accent-soft);padding:12px 14px;border-radius:0 8px 8px 0;font-size:17px;font-weight:700}
+.insight b{color:var(--accent)}
+.presets{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+button{font-family:inherit;font-size:14px;border:1px solid var(--line);background:var(--panel);color:var(--ink);border-radius:6px;padding:7px 12px;cursor:pointer;line-height:1.4}
+button:hover{border-color:var(--accent)}
+button.on{background:var(--accent);color:var(--on-accent);border-color:var(--accent);font-weight:700}
+button.lg{font-size:16px;padding:11px 18px;font-weight:700}
+button[disabled]{opacity:.5;cursor:not-allowed}
+select,input[type=number],input[type=text],textarea{font-family:inherit;font-size:16px;padding:6px 8px;border:1px solid var(--line);border-radius:6px;background:var(--panel);color:var(--ink);min-width:0}
+textarea{resize:vertical;width:100%}
+.pill{display:inline-flex;align-items:center;gap:4px;font-size:12px;font-weight:700;padding:1px 8px;border-radius:99px;white-space:nowrap}
+.pill.ok{background:var(--good-bg);color:var(--good)} .pill.no{background:var(--bad-bg);color:var(--bad)} .pill.mid{background:var(--warn-bg);color:var(--warn)}
+.lgd{display:inline-block;width:12px;height:12px;border-radius:3px;vertical-align:-1px;margin-right:4px}
+details{border:1px solid var(--line);border-radius:8px;padding:8px 12px;background:var(--panel)}
+details summary{cursor:pointer;font-weight:700}
+details[open] summary{margin-bottom:8px}
+
+/* intro */
+#intro{padding-block:32px}
+#intro .card{padding:28px 24px;display:grid;gap:16px}
+#intro h2{font-size:24px;font-weight:900}
+#intro ol{margin:0;padding-left:22px;display:grid;gap:4px}
+
+/* guide bar */
+.guide{position:sticky;top:env(safe-area-inset-top,0px);z-index:6;background:var(--bg);border-bottom:1px solid var(--line)}
+.guide .wrap{padding-block:8px;display:grid;gap:6px}
+.guide .row1{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between}
+nav.acts{display:flex;gap:4px;overflow-x:auto}
+nav.acts a{padding:6px 12px;color:var(--ink-2);border-bottom:3px solid transparent;white-space:nowrap;font-weight:500}
+nav.acts a[aria-current="step"]{color:var(--accent);border-bottom-color:var(--accent)}
+nav.acts a:hover{text-decoration:none;color:var(--accent)}
+.guide .what{font-size:14px;color:var(--ink)}
+.guide .what b{color:var(--accent)}
+.guide .ctl{display:flex;gap:6px;flex-wrap:wrap}
+body.mode-intro .guide, body.mode-intro .act{display:none}
+body:not(.mode-intro) #intro{display:none}
+body.mode-tour .act{display:none}
+body.mode-tour .act.on{display:block}
+body.mode-free .act{margin-bottom:32px}
+.act-head{display:grid;gap:4px;margin-bottom:12px}
+.act-head .eyebrow{font-size:13px;color:var(--ink-2);font-weight:700;letter-spacing:.04em}
+
+/* stage */
+.stagegrid{display:grid;grid-template-columns:minmax(0,1fr) 280px;gap:16px}
+.stage{display:grid;gap:12px}
+.stagebar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between}
+.clock{font-family:var(--f-num);font-size:28px;font-weight:600;font-variant-numeric:tabular-nums;line-height:1}
+.clock small{font-family:var(--f-body);font-size:13px;color:var(--ink-2);font-weight:400;margin-left:6px}
+.flow{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.node{position:relative;padding:4px 10px;border:1px solid var(--line);border-radius:99px;font-size:13px;background:var(--panel);color:var(--ink-2);transition:background .2s,color .2s,border-color .2s}
+.node.on{border-color:var(--accent);color:var(--accent);font-weight:700;background:var(--accent-soft)}
+.node.wait{border-color:var(--warn);color:var(--warn);font-weight:700;background:var(--warn-bg)}
+.node.hot{border-color:var(--bad);color:var(--bad);font-weight:700;background:var(--bad-bg)}
+.node.done{border-color:var(--good);color:var(--good);font-weight:700;background:var(--good-bg)}
+.arrow{color:var(--ink-3);font-size:13px}
+.tl{display:grid;grid-template-columns:84px minmax(0,1fr);gap:6px 10px;align-items:center}
+.tl .lab{font-size:13px;line-height:1.3}
+.tl .lab small{display:block;color:var(--ink-3);font-size:12px}
+.track{position:relative;height:26px;background:var(--future);border-radius:4px;overflow:hidden}
+.track .played{position:absolute;left:0;top:0;bottom:0;background:var(--good);opacity:.85}
+.track .seg{position:absolute;top:0;bottom:0}
+.seg.co{background:var(--s1)} .seg.mw{background:var(--s2)} .seg.flt{background:var(--s3)} .seg.rt{background:var(--idle)}
+.track .ph{position:absolute;top:0;bottom:0;width:2px;background:var(--ink)}
+.axis{position:relative;height:18px;font-family:var(--f-num);font-size:11px;color:var(--ink-3)}
+.axis span{position:absolute;transform:translateX(-50%)}
+.legend{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:13px;color:var(--ink-2)}
+ol.feed{list-style:none;margin:0;padding:0;display:grid;gap:6px;font-size:14px}
+ol.feed li{display:grid;grid-template-columns:52px minmax(0,1fr);gap:8px;align-items:baseline}
+ol.feed li[hidden]{display:none}
+ol.feed li .t{font-family:var(--f-num);font-size:13px;color:var(--ink-2)}
+ol.feed li.bad .x{color:var(--bad);font-weight:700}
+ol.feed li.good .x{color:var(--good);font-weight:700}
+ol.feed li.fresh{animation:fresh 1.2s ease-out}
+@keyframes fresh{from{background:var(--accent-soft)}to{background:transparent}}
+.kpis{display:grid;gap:10px;align-content:start}
+.kpi{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:8px 12px;border-left:4px solid var(--line)}
+.kpi .lab{font-size:13px;color:var(--ink-2)}
+.kpi .val{font-family:var(--f-num);font-size:26px;font-weight:600;font-variant-numeric:tabular-nums;line-height:1.25}
+.kpi .val small{font-family:var(--f-body);font-size:14px;font-weight:500;margin-left:4px}
+.kpi .cmp{font-size:12px;color:var(--ink-3)}
+.kpi.no{border-left-color:var(--bad)} .kpi.ok{border-left-color:var(--good)} .kpi.mid{border-left-color:var(--warn)}
+.endline{display:none}
+.endline.show{display:block}
+
+/* act 2 */
+.lines-today{display:flex;flex-wrap:wrap;gap:6px;font-size:13px}
+.lines-today span{border:1px solid var(--line);border-radius:6px;padding:1px 8px;background:var(--bg)}
+.chat{display:grid;gap:8px;padding:12px;background:var(--bg);border:1px solid var(--line);border-radius:10px;min-height:120px;max-height:340px;overflow-y:auto;align-content:start}
+.msg{max-width:86%;padding:8px 12px;border-radius:10px;background:var(--panel);border:1px solid var(--line);font-size:16px;line-height:1.5;overflow-wrap:anywhere}
+.msg .who{display:block;font-size:12px;color:var(--ink-2)}
+.msg .at{display:block;font-size:12px;color:var(--ink-3);font-family:var(--f-num);text-align:right}
+.msg.sys{justify-self:center;background:transparent;border:0;color:var(--ink-3);font-size:13px;text-align:center;max-width:100%}
+.chat-hint{font-size:13px;color:var(--ink-2)}
+.presetmsg{display:grid;gap:6px}
+.presetmsg button{text-align:left;display:grid;gap:0;font-size:15px}
+.presetmsg button small{font-size:12px;color:var(--ink-2);font-weight:400}
+.composer{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;align-items:end}
+.composer-meta{display:flex;flex-wrap:wrap;gap:8px;align-items:center;font-size:13px;color:var(--ink-2)}
+.composer-meta select{font-size:14px;padding:3px 6px}
+.req{margin:0;display:grid}
+.req .f{display:grid;grid-template-columns:72px minmax(0,1fr) auto;gap:4px 10px;align-items:center;padding:7px 8px;border-bottom:1px solid var(--line)}
+.req .f dt{color:var(--ink-2);font-size:13px;margin:0}
+.req .f dd{margin:0;font-size:16px;min-width:0}
+.req .f .why{grid-column:2 / -1;font-size:13px}
+.req .f.miss{background:var(--bad-bg);border-radius:6px;border-bottom-color:transparent;margin-block:2px}
+.req .f.miss .why{color:var(--bad);font-weight:700}
+.req .f.lo .why{color:var(--warn)}
+.req .f select,.req .f input{font-size:15px;padding:3px 6px;max-width:100%}
+.conf{font-family:var(--f-num);font-size:12px;color:var(--ink-3);text-align:right;white-space:nowrap}
+.conf.lo{color:var(--warn);font-weight:600}
+.conf.hu{color:var(--accent);font-weight:600}
+.status{font-size:14px;color:var(--ink-2);display:flex;gap:8px;align-items:center}
+.spinner{width:14px;height:14px;border:2px solid var(--line);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.source{font-size:12px;color:var(--ink-3)}
+.source.fb{color:var(--warn);font-weight:700}
+.human{border:1px dashed var(--accent);border-radius:8px;padding:10px 12px;display:grid;gap:8px;background:var(--accent-soft)}
+.cmpgrid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px}
+.mode{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px;min-width:0}
+.mode.bad{border-top:4px solid var(--bad)} .mode.good{border-top:4px solid var(--good)}
+.mode .how{font-size:13px;color:var(--ink-2);margin:2px 0 8px}
+.big{font-family:var(--f-num);font-size:30px;font-weight:600;font-variant-numeric:tabular-nums;line-height:1.2}
+.big small{font-family:var(--f-body);font-size:14px;font-weight:500}
+.kv{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:3px 12px;font-size:14px;margin-top:8px}
+.kv span:nth-child(even){font-family:var(--f-num);text-align:right;font-variant-numeric:tabular-nums}
+.kv .em{font-weight:700}
+.reply{display:grid;gap:8px}
+.reply textarea{font-size:16px;line-height:1.6;background:var(--bg)}
+
+/* act 3 */
+.chart{position:relative;height:300px}
+.bignums{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.bn{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px;display:grid;gap:2px;align-content:start;min-width:0}
+.bn .lab{font-size:13px;color:var(--ink-2)}
+.bn .v{font-family:var(--f-num);font-size:30px;font-weight:600;font-variant-numeric:tabular-nums;line-height:1.25}
+.bn .v small{font-family:var(--f-body);font-size:16px;font-weight:700}
+.bn .v .from{color:var(--ink-3);text-decoration:line-through;text-decoration-thickness:2px;font-size:22px}
+.bn .s{font-size:13px;color:var(--ink-2)}
+.bn.good{border-top:4px solid var(--good)} .bn.acc{border-top:4px solid var(--accent)}
+table{border-collapse:collapse;width:100%;font-size:13px}
+th,td{padding:6px 8px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+th{color:var(--ink-2);font-weight:500;background:color-mix(in srgb,var(--line) 30%,transparent)}
+.tbl{overflow-x:auto}
+.finale{display:grid;gap:8px}
+
+@media (max-width:900px){
+  .stagegrid,.g2,.cmpgrid{grid-template-columns:minmax(0,1fr)}
+  .kpis{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .bignums{grid-template-columns:minmax(0,1fr)}
+}
+@media (max-width:520px){
+  body{font-size:16px}
+  .small,.chat-hint,.status{font-size:14px}
+  .note{font-size:13px}
+  .tl{grid-template-columns:62px minmax(0,1fr)}
+  .tl .lab small{font-size:11px}
+  .kpi .val{font-size:22px}
+  .clock{font-size:24px}
+  .guide .what{font-size:14px}
+  .chart{height:260px}
+  #intro h2{font-size:21px}
+}
+@media (prefers-reduced-motion: reduce){*{transition:none!important;animation:none!important}}
+</style>
+
+<header class="top">
+  <div class="wrap">
+    <h1>昇嶺電子：一張插單吃掉多少產能</h1>
+    <span class="sub">UNEXT AI 企業創新實戰營 2026｜智谷網絡 個案 A｜昇嶺電子為虛構公司，數字為個案示範值</span>
+  </div>
+</header>
+
+<div class="guide" id="guide">
+  <div class="wrap">
+    <div class="row1">
+      <nav class="acts" aria-label="三幕">
+        <a href="#act1" data-go="1">① 問題</a>
+        <a href="#act2" data-go="2">② 解法</a>
+        <a href="#act3" data-go="3">③ 結果</a>
+      </nav>
+      <div class="ctl">
+        <button type="button" id="g-prev">上一步</button>
+        <button type="button" id="g-next" class="on">下一步 →</button>
+        <button type="button" id="g-mode">自由操作</button>
+      </div>
+    </div>
+    <p class="what" id="g-what"></p>
+  </div>
+</div>
+
+<main class="wrap">
+
+<section id="intro">
+  <div class="card">
+    <p class="small muted">給評審的 3 分鐘導覽｜不用看說明，照「下一步」走就好</p>
+    <h2>九月有 12 筆追加單與換零件。其中 9/17 一張 800 片的單，讓當天 SMT 比平日多停 10.9 小時，吃掉約 1,635 片產能。</h2>
+    <p class="lead">昇嶺電子的出貨只取決於 SMT 線能跑多久。插單走 LINE、電話、口頭，現場晚 7 小時才知道，SMT 就被切成碎片。我們的方案是「單一接單入口＋插單閘門」，這裡讓你親手試。</p>
+    <ol class="small">
+      <li><b>問題</b>（約 30 秒）：重播 9/17 這一天，看計數器怎麼累加。</li>
+      <li><b>解法</b>（約 90 秒）：你傳一則 LINE，AI 整理成單，業務按確認，系統算出兩種做法的差別。</li>
+      <li><b>結果</b>（約 30 秒）：同一天用閘門重播，再看一個月省多少、多久回本。</li>
+    </ol>
+    <div class="presets">
+      <button type="button" class="on lg" id="start-tour">▶ 開始 3 分鐘導覽</button>
+      <button type="button" class="lg" id="start-free">跳過導覽，自由操作</button>
+    </div>
+  </div>
+</section>
+
+<!-- ================= ACT 1 ================= -->
+<section class="act" id="act1" data-act="1">
+  <div class="act-head">
+    <span class="eyebrow">第一幕｜問題</span>
+    <h2>9/17（週四）：一則 LINE 訊息，讓 SMT 一天多停了 10.9 小時</h2>
+  </div>
+  <div class="stagegrid">
+    <div class="card stage">
+      <div class="stagebar">
+        <div class="clock" id="a1-clock">08:00<small>9/17 週四</small></div>
+        <div class="presets">
+          <button type="button" id="a1-play" class="on">▶ 播放這一天</button>
+          <button type="button" id="a1-reset">⟲ 從 08:00 重播</button>
+        </div>
+      </div>
+      <div class="flow" id="a1-flow" aria-label="訊息傳遞">
+        <span class="node" data-n="0">客戶甲</span><span class="arrow">→ LINE →</span>
+        <span class="node" data-n="1">業務</span><span class="arrow">→ 口頭 →</span>
+        <span class="node" data-n="2">生管</span><span class="arrow">→ ？ →</span>
+        <span class="node" data-n="3">現場 SMT</span>
+      </div>
+      <div class="tl" id="a1-tl"></div>
+      <div class="legend">
+        <span><i class="lgd" style="background:var(--good)"></i>正常生產</span>
+        <span><i class="lgd" style="background:var(--s1)"></i>換線</span>
+        <span><i class="lgd" style="background:var(--s2)"></i>等料</span>
+        <span><i class="lgd" style="background:var(--s3)"></i>拋料／故障</span>
+        <span><i class="lgd" style="background:var(--idle)"></i>平日本來就有的停機</span>
+      </div>
+      <ol class="feed" id="a1-feed"></ol>
+    </div>
+    <div class="kpis" aria-live="polite">
+      <div class="kpi no"><div class="lab">比沒插單的平日，多停的 SMT 時數</div><div class="val" id="a1-h">0.0<small>h</small></div><div class="cmp" id="a1-hc"></div></div>
+      <div class="kpi no"><div class="lab">吃掉的產能</div><div class="val" id="a1-p">0<small>片</small></div><div class="cmp">多停時數 × 每線每小時 150 片</div></div>
+      <div class="kpi mid"><div class="lab">當天實際出貨</div><div class="val" id="a1-f">–</div><div class="cmp" id="a1-fc">收工後顯示。資料3：4,100 片</div></div>
+      <div class="kpi"><div class="lab">當天 SMT 稼動率</div><div class="val" id="a1-u">–</div><div class="cmp">九月平均 76%；資料3 當天 58%</div></div>
+    </div>
+  </div>
+  <div class="insight endline" id="a1-end" style="margin-top:16px">這一張 800 片的單，讓 SMT 比平日多停 <b>10.9 小時</b>，吃掉約 <b>1,635 片</b>產能。</div>
+  <p class="note" style="margin-top:8px"><b>資料來源（資料3，9/17）：</b>09:10 客戶甲 LINE、10:20 現場才知道；SMT 開機 47.3 h、正常運轉 27.3 h、稼動率 58%（九月最低）、換線 9 次共 8.5 h、等料 9.0 h、拋料與故障 2.5 h、出貨 4,100 片。「平日」是九月沒有追加單、換零件的 10 個平日（不含週六）的平均：開機 41.2 h、換線 5.3 次共 4.7 h、等料 2.0 h、故障 2.4 h、出貨 4,820 片。其中 2 天是事件隔天，所以平均偏保守。多停的時數 = 9/17 實際 − 平日平均 = 換線 3.8 h＋等料 7.0 h＋故障 0.1 h。出貨只少 720 片，比 1,635 片小，是因為 9/17 當天多開機 6.1 小時補回一部分（10.9 − 6.1 ≈ 4.8 h × 150 ≈ 720）。<span class="guess">【我猜的】</span> 只有「各條線停在幾點」：資料只寫「SMT 3 線：等料，丙的 W0915（C2）停 4 小時」，所以 3 線的 4 小時等料依資料；其他線的換線與缺料時間，是依總時數與「零件跨機種共用」（個案）推論。第二幕的試算用的是 12 個月迴歸的「每件平均」（14.5 h，含之後幾天的餘震），所以和這裡的當天實際數字不同。</p>
+</section>
+
+<!-- ================= ACT 2 ================= -->
+<section class="act" id="act2" data-act="2">
+  <div class="act-head">
+    <span class="eyebrow">第二幕｜解法：請你動手</span>
+    <h2>單一接單入口＋插單閘門：同一張單，換一種接法</h2>
+    <p class="small muted">每天只在 10:00、15:00 兩個時段插單，同機種合併，48 小時內的排程凍結。客戶甲的追加單照收、照做，只是排進最近的時段，並回覆一個做得到的交期。</p>
+  </div>
+  <div class="g2">
+    <div class="card stack" style="gap:12px">
+      <div>
+        <h3>昇嶺收件（仿 LINE）</h3>
+        <p class="chat-hint">點一則客戶訊息，或自己打一句，再按「送出」。</p>
+      </div>
+      <div class="presetmsg" id="presets"></div>
+      <div class="chat" id="chat" aria-live="polite">
+        <div class="msg sys">LINE、電話、老闆交辦都轉進這個帳號。作業員不用多打任何字。</div>
+      </div>
+      <div class="composer">
+        <label for="msg" class="small" style="grid-column:1 / -1;color:var(--ink-2)">訊息內容</label>
+        <textarea id="msg" rows="2" placeholder="例如：B2 追 300 片，週五前"></textarea>
+        <button type="button" class="on" id="send">送出</button>
+      </div>
+      <div class="composer-meta">
+        <label for="msg-who">來源</label>
+        <select id="msg-who">
+          <option value="客戶甲|LINE">客戶甲・LINE</option>
+          <option value="客戶乙|LINE">客戶乙・LINE</option>
+          <option value="客戶丙|LINE">客戶丙・LINE</option>
+          <option value="老闆（口頭轉述）|口頭">老闆・口頭轉述</option>
+          <option value="未標註|LINE" selected>未標註・LINE</option>
+        </select>
+        <label for="msg-time">收到時間</label>
+        <select id="msg-time">
+          <option value="9.1667">09:10</option>
+          <option value="13.1667">13:10</option>
+          <option value="16.0833">16:05</option>
+        </select>
+      </div>
+      <div class="lines-today"><b class="small">今天線上：</b><span>1 線 <code>B2</code> 乙</span><span>2 線 <code>C1</code> 丙</span><span>3 線 <code>C2</code> 丙</span><span>4 線 <code>B2</code> 乙</span></div>
+    </div>
+
+    <div class="stack" style="gap:12px">
+      <div class="card" id="parsecard">
+        <h3>插單需求單</h3>
+        <p class="small muted" id="parse-empty" style="margin-top:6px">送出訊息後，AI 會把它整理成這張單：客戶、管道、類型、機種、數量、要求交期，每欄附信心程度。缺的欄位會標紅。</p>
+        <div class="status" id="parse-status" hidden><span class="spinner"></span><span id="parse-status-t">AI 整理中…（最多等 8 秒）</span></div>
+        <dl class="req" id="req" hidden></dl>
+        <p class="source" id="parse-source" hidden></p>
+        <div class="human" id="human" hidden>
+          <p class="small"><b>AI 只負責整理，交期由生管決定、業務確認後才生效。</b></p>
+          <div class="presets">
+            <button type="button" class="on" id="confirm" disabled>業務確認</button>
+            <span class="small muted" id="confirm-why"></span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="stack" id="calc" hidden style="margin-top:16px">
+    <div class="card">
+      <h3 id="calc-title">試算：這張單用兩種做法處理</h3>
+      <p class="small muted" id="calc-sub" style="margin-top:4px"></p>
+      <div class="cmpgrid" id="cmp" style="margin-top:12px"></div>
+      <p class="small" id="calc-sum" style="margin-top:12px"></p>
+      <p class="note" style="margin-top:6px"><span class="guess">【我猜的】</span> 閘門下每件換線 3 次（線上正跑同機種時 1 次），每次 0.60 h；等料 × 0.35；故障 1.5 h。這裡的換線、等料、故障是 12 個月迴歸的「每件平均」（含之後幾天的餘震），不是某一天的實際。被推遲的天數以每線每天約 7.3 h 正常運轉換算。罰款率以乙丙營收比例混合為每天 1.64%，插單客戶不是甲時打五折。換線、等料、故障的「收到就插」係數來自 12 個月迴歸。</p>
+    </div>
+    <div class="card reply">
+      <h3>給客戶的交期回覆（草稿）</h3>
+      <textarea id="reply" rows="3" readonly></textarea>
+      <div class="presets"><button type="button" id="copy">複製</button><span class="small muted" id="copy-msg" aria-live="polite"></span></div>
+      <p class="note" id="reply-note"></p>
+    </div>
+  </div>
+
+  <details style="margin-top:16px">
+    <summary>測試工具</summary>
+    <label class="small"><input type="checkbox" id="force-fail"> 模擬 AI 呼叫失敗（改用備援規則）</label>
+  </details>
+</section>
+
+<!-- ================= ACT 3 ================= -->
+<section class="act" id="act3" data-act="3">
+  <div class="act-head">
+    <span class="eyebrow">第三幕｜結果</span>
+    <h2>同一天重播：這次插單走閘門，額外停機只剩 3.3 小時</h2>
+  </div>
+  <div class="stagegrid">
+    <div class="card stage">
+      <div class="stagebar">
+        <div class="clock" id="a3-clock">08:00<small>9/17 週四（用閘門）</small></div>
+        <div class="presets">
+          <button type="button" id="a3-play" class="on">▶ 重播這一天</button>
+          <button type="button" id="a3-reset">⟲ 從 08:00 重播</button>
+        </div>
+      </div>
+      <div class="flow" id="a3-flow" aria-label="訊息傳遞">
+        <span class="node" data-n="0">客戶甲</span><span class="arrow">→ LINE →</span>
+        <span class="node" data-n="1">AI 收件</span><span class="arrow">→</span>
+        <span class="node" data-n="2">業務確認</span><span class="arrow">→</span>
+        <span class="node" data-n="3">生管閘門</span><span class="arrow">→ 15:00 →</span>
+        <span class="node" data-n="4">現場 SMT</span>
+      </div>
+      <div class="tl" id="a3-tl"></div>
+      <div class="legend">
+        <span><i class="lgd" style="background:var(--good)"></i>正常生產</span>
+        <span><i class="lgd" style="background:var(--s1)"></i>換線</span>
+        <span><i class="lgd" style="background:var(--s2)"></i>等料</span>
+        <span><i class="lgd" style="background:var(--s3)"></i>拋料／故障</span>
+        <span><i class="lgd" style="background:var(--idle)"></i>平日本來就有的停機</span>
+      </div>
+      <ol class="feed" id="a3-feed"></ol>
+    </div>
+    <div class="kpis" aria-live="polite">
+      <div class="kpi ok"><div class="lab">比沒插單的平日，多停的 SMT 時數</div><div class="val" id="a3-h">0.0<small>h</small></div><div class="cmp" id="a3-hc"></div></div>
+      <div class="kpi ok"><div class="lab">吃掉的產能</div><div class="val" id="a3-p">0<small>片</small></div><div class="cmp" id="a3-pc"></div></div>
+      <div class="kpi ok"><div class="lab">比第一幕多出的產能</div><div class="val" id="a3-f">–</div><div class="cmp" id="a3-fc">收工後顯示</div></div>
+      <div class="kpi"><div class="lab">當天 SMT 稼動率</div><div class="val" id="a3-u">–</div><div class="cmp">第一幕：58%</div></div>
+    </div>
+  </div>
+
+  <div class="card" style="margin-top:16px">
+    <h3>效果只要做到一半就夠：月出貨 vs 效果強度</h3>
+    <p class="small muted" style="margin-top:4px">我們不知道每個做法的效果會不會跟預估一樣，所以把全套方案的效果從 0% 拉到 120%（100% = 我們的預估值），看月出貨什麼時候碰到目標線。</p>
+    <div class="chart" style="margin-top:10px"><canvas id="c-be" aria-label="月出貨對效果強度的折線圖"></canvas></div>
+    <div class="tbl" id="be-table" hidden></div>
+    <div class="presets" id="be-pills" style="margin-top:10px"></div>
+    <p class="note" style="margin-top:6px">模型來自完整模擬器：出貨 = SMT 正常運轉時數 × 150，停機三項依插單件數迴歸；每月插單維持 12 件、加班維持 3,700 小時。效果大小是 <span class="guess">【我猜的，取保守值】</span>。達標 = 月出貨 ≥ 12.54 萬片（九月 11.4 萬 × 1.1）且準時率 ≥ 90%。</p>
+  </div>
+
+  <div class="bignums" style="margin-top:16px">
+    <div class="bn good"><span class="lab">每月損失（模擬器損失表）</span><span class="v"><span class="from">403 萬</span> → 約 58 萬</span><span class="s">九月帳面 135 萬＋隱藏損失 268 萬 → 全套方案的模型估計 <span class="guess">【我猜的】</span></span></div>
+    <div class="bn acc"><span class="lab">投入</span><span class="v">約 49<small> 萬</small></span><span class="s">一次性，之後每月約 1.1 萬 <span class="guess">【我猜的】</span>。不加人、不買機台、不加班。</span></div>
+    <div class="bn good"><span class="lab">回本</span><span class="v">不到 1<small> 個月</small></span><span class="s">每月效益約 341 萬（毛利 +268、罰款 −52、客訴 −21，模擬器 KPI），大於一次投入的 49 萬。損失表的差額是 345 萬，兩個口徑差在隱藏損失的算法。</span></div>
+  </div>
+
+  <div class="card finale" style="margin-top:16px">
+    <div class="insight">先做「單一接單入口＋插單閘門」，不用加人、不用買機台。<b>全套只要做到預估效果的一半就達標。</b></div>
+    <p class="small">想看更多：<a href="https://claude.ai/artifact/G5usj4dPgnTA3uQctbmqDN" target="_blank" rel="noopener">3D 廠房：同一天兩種做法對照播放</a>｜<a href="https://claude.ai/artifact/5rWiJAvTDBEdyawbsHAQzh" target="_blank" rel="noopener">完整模擬器（含 3D 廠房、部門動畫）</a></p>
+    <details>
+      <summary>這個 Demo 用到的假設</summary>
+      <div class="tbl"><table>
+        <tr><th>假設 <span class="guess">【我猜的】</span></th><th>用在哪裡</th></tr>
+        <tr><td>閘門下每件換線 3 次（同機種 1 次）、每次 0.60 h；等料為現況的 35%；故障 1.5 h</td><td>第二幕右卡、第三幕重播</td></tr>
+        <tr><td>插單時段前要留 1.5 小時齊料、線外預裝飛達</td><td>決定排進哪個時段</td></tr>
+        <tr><td>SMT 每天做到 20:00（9/17 實際每線開機約 11.8 h）；SMT 做完後，插件、測試、組裝、包裝約半天，隔天 12:00 前出貨</td><td>交期回覆</td></tr>
+        <tr><td>每線每天約 7.3 h 正常運轉</td><td>被推遲天數</td></tr>
+        <tr><td>罰款率以乙丙營收比例混合：每天 1.64%；插單客戶不是甲時打五折</td><td>可能罰款</td></tr>
+        <tr><td>投入 49 萬：收件 Bot 外包 10 萬、飛達料車 24 萬、其他規則與治具 15 萬</td><td>投入與回本</td></tr>
+        <tr><td>9/17 各線停在幾點是示意；總時數（換線 +3.8 h、等料 +7.0 h、故障 +0.1 h）與 3 線 W0915 等料 4 h 依資料3；其他線的缺料依「零件跨機種共用」推論</td><td>第一幕時間軸</td></tr>
+        <tr><td>各線在跑的機種：3 線 C2（W0915）依 9/17 備註；1 線 B2、2 線 C1、4 線 B2 是示意</td><td>同機種合併判斷、時間軸標籤</td></tr>
+        <tr><td>閘門日重播：9/17 多停的換線、等料、故障各乘以閘門係數（換線 (3×0.6)/(9.33×0.9)、等料 ×0.35、故障 1.5/2.38）；開機時數維持 47.3 h</td><td>第三幕時間軸</td></tr>
+      </table></div>
+    </details>
+  </div>
+</section>
+</main>
+
+<script>
+/* ================= rush-order model (same formulas as the full simulator) ================= */
+const RATE=150, MARGIN_PER=180, PRICE=1200, H_PER_LINE_DAY=7.3;
+const VICTIM=(0.35*0.02+0.20*0.01)/0.55; // 乙丙混合罰率 ≈ 1.64%/天
+const MASTER=["A1","A2","B2","C1","C2"];
+const OWNER={A:"甲",B:"乙",C:"丙"};
+const RUNNING={1:"B2",2:"C1",3:"C2",4:"B2"}; // 3 線 C2（W0915）依 9/17 備註，其餘示意
+function rushCalc(o){ // o: {cust, chan:'line'|'oral'|'formal', type:'add'|'eco', qty, same, t}
+  const prod=o.qty/RATE, h=0.90;
+  const A={co:9.33}; A.coh=A.co*h; A.mw=3.72*(o.chan==="formal"?0.7:1)*(o.type==="eco"?1.3:1); A.flt=2.38;
+  A.lost=A.coh+A.mw+A.flt; A.total=prod+A.lost;
+  const B={co:o.same?1:3}; B.coh=B.co*0.60; B.mw=3.72*0.35*(o.type==="eco"?1.3:1); B.flt=1.5;
+  B.lost=B.coh+B.mw+B.flt; B.total=prod+B.lost;
+  const half=o.cust==="甲"?1:0.5;
+  for(const X of [A,B]){ X.lostBoards=X.lost*RATE; X.lostMargin=X.lostBoards*MARGIN_PER; }
+  A.delayDays=Math.max(0.5,Math.round(A.total/H_PER_LINE_DAY*2)/2);
+  A.displaced=A.total*RATE;
+  A.penalty=A.displaced*PRICE*VICTIM*A.delayDays*half;
+  // gate: production goes into the reserved slot; only the lost time pushes other orders
+  B.delayDays=Math.max(0.5,Math.round(B.lost/H_PER_LINE_DAY*2)/2);
+  B.displaced=B.lostBoards;
+  B.penalty=B.displaced*PRICE*VICTIM*B.delayDays*half;
+  A.prod=B.prod=prod;
+  return {A,B};
+}
+
+/* ================= monthly model (ported from the full simulator) ================= */
+const BASE={coInt:36,coPer:9.33,hBase:0.72,hSlope:0.0179,mwInt:17.3,mwPer:3.72,fInt:19.4,fPer:2.38,
+  retBase:2785,retPerCO:34.9,backlog:44,open0:1003,otOpen:0.064,
+  stdSec:{ins:50,test:46,asm:32,pack:16},actSec:{ins:45,test:40,asm:30,pack:15},eff:.96};
+const FULL=["gate","intake","smed","kit","realsched","fair","test","cross"];
+function lerp(a,b,t){return a+(b-a)*t}
+function simMonth(ids,s){
+  const ON=new Set(ids), on=id=>ON.has(id)?Math.min(1,s):0, onx=id=>ON.has(id)?s:0;
+  const ev=12, orders=127;
+  const p={};
+  p.coPer=lerp(BASE.coPer,3.0,on("gate")); p.fPer=lerp(BASE.fPer,1.5,on("gate"));
+  const hNow=BASE.hBase+BASE.hSlope*Math.max(0,ev-2);
+  p.hco=Math.max(.3,hNow*(1-0.33*onx("smed")));
+  p.fInt=lerp(BASE.fInt,16,on("smed")); p.retPerCO=BASE.retPerCO*(1-0.30*on("smed"));
+  p.mwInt=lerp(BASE.mwInt,10,on("kit")); p.mwPer=BASE.mwPer*(1-0.30*on("intake"))*(1-0.50*on("kit"));
+  p.disrupt=Math.max(.1,1-0.35*onx("gate")-0.30*onx("intake")-0.20*onx("realsched"));
+  p.retBase=lerp(BASE.retBase,1700,on("test")); p.pool=0.6*on("cross");
+  const co=BASE.coInt+p.coPer*ev, stops=co*p.hco+(p.mwInt+p.mwPer*ev)+(p.fInt+p.fPer*ev);
+  const run=Math.max(0,BASE.open0-stops);
+  const smtCap=run*150/1000;
+  const logged={}; for(const k of ["ins","test","asm","pack"]) logged[k]=114000*BASE.stdSec[k]/3600/BASE.eff;
+  const retestFor=x=>p.retBase*(x/114)+p.retPerCO*co;
+  const capOf=(k,x)=>k==="test"?(logged.test*3600/BASE.actSec.test-retestFor(x))/1000:logged[k]*3600/BASE.actSec[k]/1000;
+  const totH=Object.values(logged).reduce((a,b)=>a+b,0)*3600, per=45+40+30+15;
+  let guess=smtCap, manCap=0;
+  for(let i=0;i<5;i++){
+    const caps=["ins","test","asm","pack"].map(k=>capOf(k,guess)); const sep=Math.min(...caps);
+    const pooled=(totH-retestFor(guess)*BASE.actSec.test)/per/1000;
+    manCap=sep+p.pool*Math.max(0,pooled-sep); guess=Math.min(smtCap,manCap);
+  }
+  const ship=Math.min(smtCap,manCap,orders+BASE.backlog/3);
+  const otd=Math.min(.975,Math.max(.4,1.819-0.854*(orders/ship)-0.0067*ev*p.disrupt));
+  return {ship,otd};
+}
+
+/* ================= helpers ================= */
+const $=s=>document.querySelector(s);
+const f0=v=>Math.round(v).toLocaleString("zh-TW");
+const f1=v=>(Math.round(v*10)/10).toFixed(1);
+const wan=v=>(v/10000).toFixed(1);
+const hhmm=h=>{const m=Math.round(h*60);return String(Math.floor(m/60)).padStart(2,"0")+":"+String(m%60).padStart(2,"0");};
+const css=v=>getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+const REDUCED=window.matchMedia&&matchMedia("(prefers-reduced-motion: reduce)").matches;
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+
+/* ================= day stages (act 1 and act 3) ================= */
+const H0=8,H1=20,SPAN=H1-H0;
+const RATE_H=RATE;
+/* 資料3 9/17 實際，與九月沒有追加單／換零件的 10 個平日平均（BASED）。多停 = 實際 − 平日。 */
+const D17={open:47.3,run:27.3,coN:9,coH:8.5,mwH:9.0,fltH:2.5,ship:4100};
+const BASED={open:41.24,run:32.14,coN:5.3,coH:4.7,mwH:2.0,fltH:2.4,ship:4820};
+const XTRA={coH:D17.coH-BASED.coH,mwH:D17.mwH-BASED.mwH,fltH:D17.fltH-BASED.fltH};
+const XTRA_H=XTRA.coH+XTRA.mwH+XTRA.fltH; // 10.9 h
+/* 平日本來就有的停機，共 9.1 h（= 41.24 − 32.14），平均分在四條線 */
+const ROUTINE={1:[[8,8.7],[13.5,14.2],[19,19.7]],2:[[8,8.6],[12.9,13.6],[17.5,18.2]],3:[[8,8.8],[16.5,17.3],[19,19.9]],4:[[8,8.6],[12.5,13.4],[18.3,19.3]]};
+const LINES=[[1,"1 線","B2 乙"],[2,"2 線","C1 丙"],[3,"3 線","C2 丙 W0915"],[4,"4 線","B2 乙"]];
+const DAYS={
+  now:{
+    /* 多停合計 10.9 h：換線 3.8、等料 7.0、故障 0.1。3 線等料 4 h 依資料3（W0915）；其餘為示意 */
+    seg:{1:[["co",10.3333,11.2333],["mw",12.0,13.0]],
+      2:[["co",10.3333,11.3333],["mw",14.2,15.2]],
+      3:[["co",10.3333,11.2333],["mw",11.2333,15.2333]],
+      4:[["co",10.3333,11.3333],["mw",13.4,14.4],["flt",15.0,15.1]]},
+    feed:[[9.1667,"客戶甲在 LINE 傳給業務：「A1 再加 800」",""],
+      [9.4167,"業務口頭問生管「排得進去嗎？」生管說可以。沒有試算，也沒有紀錄。（這一步的時間是示意）",""],
+      [10.3333,"現場這時才知道，晚了 1 小時 10 分。各線被插進換線，改做 A1。","bad"],
+      [11.2333,"3 線換完線，丙的 W0915（C2）缺料，停線等料 4 小時。","bad"],
+      [12.0,"A1 把共用零件先領走，1 線的 B2 也缺料停線。（示意）","bad"],
+      [20,"收工。SMT 開機 47.3 h、正常運轉 27.3 h，稼動率 58%，是九月最低的一天。出貨 4,100 片，比沒插單的平日少 720 片。","bad"]],
+    flow:t=>t<9.1667?[]:t<9.4167?[[0,"on"],[1,"on"]]:t<10.3333?[[0,"on"],[1,"on"],[2,"wait"]]:[[0,"on"],[1,"on"],[2,"on"],[3,"hot"]],
+    pre:"a1"
+  },
+  gate:{
+    /* 同一天、同樣的 10.9 h 多停，各項乘以閘門係數：換線 ×0.2144、等料 ×0.35、故障 ×0.63，合計 3.32 h */
+    seg:{1:[["mw",15.0,15.35]],
+      2:[["co",15.0,15.81],["mw",15.81,16.16]],
+      3:[["mw",15.0,16.4]],
+      4:[["mw",15.0,15.35],["flt",17.0,17.06]]},
+    feed:[[9.1667,"客戶甲在 LINE 傳：「A1 再加 800」",""],
+      [9.2,"AI 把訊息整理成插單需求單；業務按「確認」。",""],
+      [9.25,"系統試算後排進 15:00 插單時段，回覆客戶「後天 12:00 前出貨」。","good"],
+      [13.5,"倉庫齊料完成，SMT 在線外先裝好 A1 的飛達。",""],
+      [15,"只有 2 線換線，約 0.8 h；3 線的 W0915 等料縮短到約 1.4 h（第一幕 4 h）。其他線照常生產。","good"],
+      [20,"收工。稼動率 74%（第一幕 58%），多停只有 3.3 h（第一幕 10.9 h）。","good"]],
+    flow:t=>t<9.1667?[]:t<9.2?[[0,"on"],[1,"on"]]:t<9.25?[[0,"on"],[1,"on"],[2,"on"]]:t<15?[[0,"on"],[1,"on"],[2,"on"],[3,"wait"]]:[[0,"on"],[1,"on"],[2,"on"],[3,"on"],[4,"done"]],
+    pre:"a3"
+  }
+};
+function buildStage(key){
+  const D=DAYS[key], pre=D.pre, tl=$("#"+pre+"-tl");
+  let html="";
+  for(const [n,name,sub] of LINES){
+    const all=[...ROUTINE[n].map(r=>["rt",r[0],r[1]]),...D.seg[n]];
+    html+=`<div class="lab">${name}<small>${sub}</small></div><div class="track" data-line="${n}"><div class="played"></div>${all.map(s=>`<div class="seg ${s[0]}" data-a="${s[1]}" data-b="${s[2]}" style="left:${(s[1]-H0)/SPAN*100}%;width:0"></div>`).join("")}<div class="ph"></div></div>`;
+  }
+  html+=`<div></div><div class="axis">${[8,10,12,14,16,18,20].map(h=>`<span style="left:${(h-H0)/SPAN*100}%">${String(h).padStart(2,"0")}</span>`).join("")}</div>`;
+  tl.innerHTML=html;
+  $("#"+pre+"-feed").innerHTML=D.feed.map(e=>`<li class="${e[2]}" data-t="${e[0]}" hidden><span class="t">${hhmm(e[0])}</span><span class="x">${e[1]}</span></li>`).join("");
+  const evTotal=Object.values(D.seg).flat().reduce((a,s)=>a+(s[2]-s[1]),0);
+  const rtTotal=Object.values(ROUTINE).flat().reduce((a,s)=>a+(s[1]-s[0]),0);
+  const st={t:H0,playing:false,raf:0,last:0};
+  function renderAt(t){
+    st.t=t;
+    const x=(t-H0)/SPAN*100;
+    tl.querySelectorAll(".track").forEach(tr=>{
+      tr.querySelector(".played").style.width=x+"%";
+      tr.querySelector(".ph").style.left=`calc(${x}% - 1px)`;
+      tr.querySelector(".ph").style.display=(t>H0&&t<H1)?"block":"none";
+      tr.querySelectorAll(".seg").forEach(s=>{const a=+s.dataset.a,b=+s.dataset.b;s.style.width=Math.max(0,Math.min(t,b)-a)/SPAN*100+"%";});
+    });
+    let ev=0; for(const s of Object.values(D.seg).flat()) ev+=Math.max(0,Math.min(t,s[2])-s[1]);
+    let rt=0; for(const s of Object.values(ROUTINE).flat()) rt+=Math.max(0,Math.min(t,s[1])-s[0]);
+    const done=t>=H1-1e-6;
+    $("#"+pre+"-h").innerHTML=f1(ev)+"<small>h</small>";
+    $("#"+pre+"-p").innerHTML=f0(ev*RATE)+"<small>片</small>";
+    $("#"+pre+"-f").innerHTML=done?(pre==="a1"?f0(D17.ship)+"<small>片</small>":"+"+f0((XTRA_H-evTotal)*RATE)+"<small>片</small>"):"–";
+    const open=4*(t-H0);
+    $("#"+pre+"-u").textContent=open>0.05?Math.round((open-ev-rt)/open*100)+"%":"–";
+    const clk=$("#"+pre+"-clock"); clk.firstChild.nodeValue=hhmm(t);
+    const fl=D.flow(t); $("#"+pre+"-flow").querySelectorAll(".node").forEach(nd=>{nd.className="node";const m=fl.find(z=>z[0]===+nd.dataset.n);if(m)nd.classList.add(m[1]);});
+    $("#"+pre+"-feed").querySelectorAll("li").forEach(li=>{const show=t>=+li.dataset.t-1e-6; if(show&&li.hidden&&st.playing){li.classList.add("fresh");} li.hidden=!show;});
+    if(pre==="a1") $("#a1-end").classList.toggle("show",t>=H1-1e-6);
+  }
+  function frame(ts){
+    if(!st.playing) return;
+    const dt=st.last?(ts-st.last)/1000:0; st.last=ts;
+    const t=Math.min(H1,st.t+dt*0.5); // 12 h in 24 s
+    renderAt(t);
+    if(t>=H1){st.playing=false;btn();return;}
+    st.raf=requestAnimationFrame(frame);
+  }
+  const playBtn=$("#"+pre+"-play");
+  function btn(){playBtn.textContent=st.playing?"❚❚ 暫停":(st.t>=H1?(pre==="a1"?"▶ 再播一次":"▶ 再重播一次"):"▶ 繼續播放");}
+  function play(){ if(REDUCED){renderAt(H1);btn();return;} if(st.t>=H1) renderAt(H0); st.playing=true; st.last=0; cancelAnimationFrame(st.raf); st.raf=requestAnimationFrame(frame); btn(); }
+  function pause(){st.playing=false;cancelAnimationFrame(st.raf);btn();}
+  playBtn.addEventListener("click",()=>st.playing?pause():play());
+  $("#"+pre+"-reset").addEventListener("click",()=>{pause();renderAt(H0);play();});
+  return {renderAt,play,pause,end:()=>{pause();renderAt(H1);btn();},state:st};
+}
+const STAGE1=buildStage("now"), STAGE3=buildStage("gate");
+STAGE1.end(); STAGE3.end();
+$("#a1-hc").textContent=`換線 +${f1(XTRA.coH)} h、等料 +${f1(XTRA.mwH)} h、故障 +${f1(XTRA.fltH)} h（9/17 實際 − 平日平均）`;
+$("#a1-fc").textContent=`收工後顯示。平日平均 ${f0(BASED.ship)} 片，少 ${f0(BASED.ship-D17.ship)} 片`;
+$("#a3-hc").textContent="第一幕："+f1(XTRA_H)+" h";
+$("#a3-pc").textContent="第一幕："+f0(XTRA_H*RATE)+" 片";
+$("#a3-fc").textContent="少停的時數 × 每線每小時 150 片";
+$("#a1-end").innerHTML=`這一張 800 片的單，讓 SMT 比平日多停 <b>${f1(XTRA_H)} 小時</b>，吃掉約 <b>${f0(XTRA_H*RATE)} 片</b>產能。`;
+
+/* ================= tour ================= */
+const GUIDE={
+  1:"<b>第一幕｜問題</b>（約 30 秒）　看 9/17：一則 LINE 追加單怎麼讓 SMT 一天多停 10.9 小時，右邊計數器即時累加。對應企劃書「問題出在哪裡？」",
+  2:"<b>第二幕｜解法</b>（約 90 秒，請動手）　點左邊第一則訊息 → 送出 → 按「業務確認」→ 看兩種做法差多少。對應「先動哪裡？」",
+  3:"<b>第三幕｜結果</b>（約 30 秒）　同一天用閘門重播，再看效果要做到幾成才達標、一個月省多少。對應「怎麼知道有沒有用？」「一個月省多少？」"
+};
+const FREE_TXT="<b>自由操作</b>　三幕都在這一頁，直接往下捲，或點上面的分頁跳過去。";
+let mode="intro", act=1;
+function setMode(m){
+  mode=m; document.body.className="mode-"+m;
+  $("#g-prev").hidden=$("#g-next").hidden=(m!=="tour");
+  $("#g-mode").textContent=m==="tour"?"自由操作":"▶ 回到導覽";
+  if(m==="free") $("#g-what").innerHTML=FREE_TXT;
+}
+function goAct(n,{scroll=true,auto=true}={}){
+  act=n;
+  document.querySelectorAll(".act").forEach(s=>s.classList.toggle("on",+s.dataset.act===n));
+  document.querySelectorAll("nav.acts a").forEach(a=>{ if(+a.dataset.go===n) a.setAttribute("aria-current","step"); else a.removeAttribute("aria-current"); });
+  if(mode==="tour"){
+    $("#g-what").innerHTML=GUIDE[n];
+    $("#g-prev").disabled=n===1;
+    $("#g-next").textContent=n===3?"✓ 看完了":"下一步 →";
+    if(scroll) window.scrollTo({top:0,behavior:REDUCED?"auto":"smooth"});
+    if(auto&&n===1){STAGE3.pause();STAGE1.renderAt(H0);STAGE1.play();}
+    if(auto&&n===3){STAGE1.pause();STAGE3.renderAt(H0);STAGE3.play();}
+    if(n===2){STAGE1.pause();STAGE3.pause();}
+  } else if(scroll){ $("#act"+n).scrollIntoView({behavior:REDUCED?"auto":"smooth"}); }
+}
+$("#start-tour").addEventListener("click",()=>{setMode("tour");goAct(1);});
+$("#start-free").addEventListener("click",()=>{setMode("free");STAGE1.end();STAGE3.end();goAct(1,{scroll:false});window.scrollTo(0,0);});
+$("#g-next").addEventListener("click",()=>{ if(act<3) goAct(act+1); else {setMode("free");STAGE1.end();STAGE3.end();goAct(1,{scroll:false});window.scrollTo(0,0);} });
+$("#g-prev").addEventListener("click",()=>{ if(act>1) goAct(act-1); });
+$("#g-mode").addEventListener("click",()=>{ if(mode==="tour"){setMode("free");STAGE1.pause();STAGE3.pause();goAct(act);} else {setMode("tour");goAct(1);} });
+document.querySelectorAll("nav.acts a").forEach(a=>a.addEventListener("click",e=>{e.preventDefault();goAct(+a.dataset.go);}));
+(function initFromHash(){ const m=/^#act([123])$/.exec(location.hash); if(m){setMode("free");goAct(+m[1]);} else setMode("intro"); })();
+
+/* ================= act 2: intake ================= */
+const PRESETS=[
+  {text:"A1 再加 800，下週二要",who:"客戶甲",chan:"LINE",t:9.1667,
+   parsed:{customer:["甲",0.97],channel:["LINE",1],type:["追加",0.95],model:["A1",0.98],qty:[800,0.96],due:["下週二",0.88]}},
+  {text:"C2 下禮拜三前要換料，舊的別再用",who:"客戶丙",chan:"LINE",t:13.1667,
+   parsed:{customer:["丙",0.97],channel:["LINE",1],type:["換零件",0.94],model:["C2",0.98],qty:[null,0,"數量沒寫，請確認（換料影響哪一批、幾片）"],due:["下週三",0.85]}},
+  {text:"老闆說甲的 A2 再追 600，盡快",who:"老闆（口頭轉述）",chan:"口頭",t:16.0833,
+   parsed:{customer:["甲",0.93],channel:["口頭",0.9],type:["追加",0.92],model:["A2",0.98],qty:[600,0.95],due:[null,0.3,"只寫「盡快」，沒有日期，請確認"]}}
+];
+let pending=null; // preset metadata for the next send
+$("#presets").innerHTML=PRESETS.map((p,i)=>`<button type="button" data-i="${i}"><small>${p.who}・${p.chan}・${hhmm(p.t)}</small>${esc(p.text)}</button>`).join("");
+document.querySelectorAll("#presets button").forEach(b=>b.addEventListener("click",()=>{
+  const p=PRESETS[+b.dataset.i]; pending=p; $("#msg").value=p.text;
+  $("#msg-who").value=p.who==="客戶甲"?"客戶甲|LINE":p.who==="客戶丙"?"客戶丙|LINE":"老闆（口頭轉述）|口頭";
+  $("#msg-time").value=String(p.t); $("#msg").focus();
+}));
+$("#msg").addEventListener("input",()=>{ if(pending&&$("#msg").value!==pending.text) pending=null; });
+$("#msg").addEventListener("keydown",e=>{ if(e.key==="Enter"&&!e.shiftKey&&!e.isComposing){e.preventDefault();send();} });
+$("#send").addEventListener("click",send);
+
+const PROMPT=`你是昇嶺電子的接單助理。把客戶或老闆傳來的一句話，整理成一張「插單需求單」。你只負責整理，不決定交期。
+機種主檔：A1、A2（客戶甲）、B2（客戶乙）、C1、C2（客戶丙）。客戶只有甲、乙、丙三家。
+只回傳一個 JSON 物件，不要任何其他文字，格式：
+{"customer":F,"channel":F,"type":F,"model":F,"qty":F,"due":F}
+其中每個 F 都是 {"value": 值或 null, "confidence": 0 到 1 的數字, "reason": "一句繁體中文"}
+- customer：甲、乙、丙之一。訊息沒寫但來源是某客戶，就用來源；只能從機種推定時 confidence ≤ 0.6。
+- channel：LINE、電話、口頭、正式單之一，依來源判斷。
+- type：「追加」或「換零件」（換料、設計變更、替代料都算換零件）。
+- model：機種代碼，大寫。不在主檔就照原文寫，confidence 0.3，reason 說明不在主檔。
+- qty：片數，整數。訊息沒寫數量就給 null，不要猜。
+- due：要求交期，照原文短寫（例如「下週二」「9/25」）。只寫「盡快」或沒寫就給 null。
+- value 為 null 或 confidence < 0.7 時，reason 寫業務要確認什麼，例如「數量沒寫，請確認」；其他情況 reason 給空字串。`;
+
+let samplePromise=null;
+function getSample(){
+  if(!samplePromise) samplePromise=(window.claude&&typeof window.claude.use==="function")?window.claude.use("sample").catch(()=>null):Promise.resolve(null);
+  return samplePromise;
+}
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+async function ensurePermission(){
+  // Ask for consent before the 8-second clock starts, so reading the dialog does not count as AI time.
+  if(!(window.claude&&typeof window.claude.use==="function")) throw {code:"unavailable"};
+  const P=await Promise.race([window.claude.use("permissions").catch(()=>null),sleep(3000).then(()=>null)]);
+  if(!P) return;
+  const s=await P.state("sample");
+  if(s==="granted") return;
+  if(s==="denied") throw {code:"not_granted"};
+  if(s==="unavailable") throw {code:"unavailable"};
+  $("#parse-status-t").textContent="請在對話框選擇是否允許這個頁面使用 Claude…";
+  const r=await P.request(["sample"]);
+  if(r.sample!=="granted") throw {code:"not_granted"};
+  $("#parse-status-t").textContent="AI 整理中…（最多等 8 秒，超過就改用備援規則）";
+}
+async function aiParse(text,meta){
+  if($("#force-fail").checked) throw {code:"forced",message:"測試：模擬 AI 呼叫失敗"};
+  await ensurePermission();
+  const ctl=new AbortController();
+  let timer;
+  const timeout=new Promise((_,rej)=>{timer=setTimeout(()=>{ctl.abort();rej({code:"timeout"});},8000);});
+  try{
+    const work=(async()=>{
+      const sample=await getSample();
+      if(!sample) throw {code:"unavailable"};
+      const input=PROMPT+`\n\n訊息來源：${meta.who}（${meta.chan}）\n收到時間：9/17（週四）${hhmm(meta.t)}\n訊息內容：${text}`;
+      return sample.json(input,{modelTier:"quick",signal:ctl.signal,cache:false});
+    })();
+    return await Promise.race([work,timeout]);
+  } finally { clearTimeout(timer); }
+}
+function fromAI(j){
+  const out={};
+  for(const k of ["customer","channel","type","model","qty","due"]){
+    const f=j&&typeof j==="object"?j[k]:null;
+    let v=f&&typeof f==="object"?f.value:f; let c=f&&typeof f==="object"?Number(f.confidence):NaN;
+    if(v===""||v===undefined) v=null;
+    if(k==="qty"&&v!==null){ v=parseInt(String(v).replace(/[^\d]/g,""),10); if(!(v>0)) v=null; }
+    if(k==="model"&&v!==null) v=String(v).trim().toUpperCase();
+    if(v!==null&&typeof v!=="number") v=String(v).trim();
+    out[k]=[v,isFinite(c)?Math.max(0,Math.min(1,c)):(v===null?0:0.7),f&&f.reason?String(f.reason):""];
+  }
+  return out;
+}
+function ruleParse(text,meta){
+  const t=text.replace(/\s+/g," ").trim();
+  const out={};
+  // model code
+  const mm=/(^|[^A-Za-z0-9])([A-Za-z])\s?(\d)(?![\d\/:])/.exec(t);
+  const model=mm?(mm[2].toUpperCase()+mm[3]):null;
+  out.model=model?[model,MASTER.includes(model)?0.9:0.3]:[null,0];
+  // quantity: drop the model code, dates and clock times first
+  let rest=t; if(mm) rest=rest.replace(mm[2]+mm[3],"").replace(mm[2]+" "+mm[3],"");
+  rest=rest.replace(/\d{1,2}\s*[\/月]\s*\d{1,2}\s*日?/g," ").replace(/\d{1,2}\s*[:：點]\s*\d{0,2}/g," ").replace(/[週周禮拜星期]\s*[一二三四五六日天]/g," ");
+  const qm=/(\d[\d,]*)\s*(片|pcs|pc|個|張)?/i.exec(rest);
+  const qty=qm?parseInt(qm[1].replace(/,/g,""),10):null;
+  out.qty=qty>0?[qty,qm[2]?0.92:0.8]:[null,0];
+  // customer
+  let cm=/客戶\s*([甲乙丙])/.exec(t)||/([甲乙丙])\s*(的|那邊|客戶|要)/.exec(t);
+  if(cm) out.customer=[cm[1],0.9];
+  else { const w=/[甲乙丙]/.exec(meta.who); if(w) out.customer=[w[0],0.9,"依訊息來源判斷"]; else if(model&&OWNER[model[0]]) out.customer=[OWNER[model[0]],0.6,"訊息沒寫客戶，依機種推定，請確認"]; else out.customer=[null,0]; }
+  // type
+  if(/換料|換零件|改料|設變|設計變更|替代料|新料|舊料|舊的別/.test(t)) out.type=["換零件",0.85];
+  else if(/加|追|多要|補|再要|增加/.test(t)) out.type=["追加",0.85];
+  else out.type=[null,0];
+  // channel
+  out.channel=[meta.chan||"LINE",meta.who==="未標註"?0.7:0.95];
+  if(/老闆說|老闆交代|口頭/.test(t)) out.channel=["口頭",0.85];
+  else if(/電話/.test(t)) out.channel=["電話",0.85];
+  // due
+  const dm=/(今天|明天|後天|下(?:週|周|禮拜|星期)[一二三四五六日天]|(?:這|本)(?:週|周|禮拜|星期)[一二三四五六日天]|(?:週|周|禮拜|星期)[一二三四五六日天]|\d{1,2}\s*[\/月]\s*\d{1,2}\s*日?)/.exec(t);
+  if(dm) out.due=[dm[1].replace(/\s/g,""),0.75];
+  else if(/盡快|儘快|越快越好|ASAP|急/i.test(t)) out.due=[null,0.3,"只寫「盡快」，沒有日期，請確認"];
+  else out.due=[null,0];
+  return out;
+}
+const LABEL={customer:"客戶",channel:"管道",type:"類型",model:"機種",qty:"數量",due:"要求交期"};
+let FIELDS=null, META=null;
+function validate(){
+  const F=FIELDS, issues={};
+  const need=(k,msg)=>{ if(F[k][0]===null||F[k][0]==="") issues[k]=F[k][2]||msg; };
+  need("customer","客戶沒寫，請確認"); need("type","看不出是追加還是換零件，請確認");
+  need("model","機種沒寫，請確認"); need("qty","數量沒寫，請確認"); need("due","交期沒寫，請確認");
+  if(F.customer[0]&&!["甲","乙","丙"].includes(F.customer[0])) issues.customer=`客戶「${F.customer[0]}」不在客戶清單（甲、乙、丙），請確認`;
+  if(F.model[0]&&!MASTER.includes(F.model[0])) issues.model=`機種「${F.model[0]}」不在主檔（A1、A2、B2、C1、C2），請確認`;
+  if(F.type[0]&&!["追加","換零件"].includes(F.type[0])) issues.type="類型只能是追加或換零件，請確認";
+  if(F.qty[0]!==null&&!(F.qty[0]>0&&F.qty[0]<=20000)) issues.qty="數量看起來不合理，請確認";
+  return issues;
+}
+function editorFor(k){
+  const v=FIELDS[k][0];
+  if(k==="customer") return `<select data-k="customer" id="ed-customer" aria-label="客戶"><option value="">請選擇</option>${["甲","乙","丙"].map(x=>`<option${x===v?" selected":""}>${x}</option>`).join("")}</select>`;
+  if(k==="type") return `<select data-k="type" id="ed-type" aria-label="類型"><option value="">請選擇</option>${["追加","換零件"].map(x=>`<option${x===v?" selected":""}>${x}</option>`).join("")}</select>`;
+  if(k==="model") return `<select data-k="model" id="ed-model" aria-label="機種"><option value="">請選擇</option>${MASTER.map(x=>`<option${x===v?" selected":""}>${x}</option>`).join("")}</select>`;
+  if(k==="qty") return `<input type="number" data-k="qty" id="ed-qty" min="1" step="50" placeholder="片數" aria-label="數量" style="width:120px">`;
+  if(k==="due") return `<input type="text" data-k="due" id="ed-due" placeholder="例如：下週二" aria-label="要求交期" style="width:140px">`;
+  return esc(v??"");
+}
+function renderReq(){
+  const issues=validate();
+  $("#req").innerHTML=["customer","channel","type","model","qty","due"].map(k=>{
+    const [v,c,why]=FIELDS[k], human=FIELDS[k].human, miss=!!issues[k];
+    const show=miss?editorFor(k):(k==="model"?`<code>${esc(v)}</code>`:k==="qty"?`<span class="num">${f0(v)}</span> 片`:esc(v));
+    const conf=human?`<span class="conf hu">業務補填</span>`:`<span class="conf${c<0.7?" lo":""}">信心 ${Math.round(c*100)}%</span>`;
+    const note=miss?`<span class="why">${esc(issues[k])}</span>`:(!human&&c<0.7&&why?`<span class="why">${esc(why)}</span>`:"");
+    return `<div class="f${miss?" miss":(!human&&c<0.7?" lo":"")}"><dt>${LABEL[k]}</dt><dd>${show}</dd>${conf}${note}</div>`;
+  }).join("");
+  $("#req").querySelectorAll("[data-k]").forEach(el=>el.addEventListener("change",()=>{
+    const k=el.dataset.k; let v=el.value.trim();
+    if(k==="qty") v=parseInt(v,10)>0?parseInt(v,10):null;
+    if(v===""||v===null) return;
+    FIELDS[k]=[v,1,""]; FIELDS[k].human=true; renderReq();
+  }));
+  const blocking=Object.keys(issues).filter(k=>k!=="due");
+  $("#confirm").disabled=blocking.length>0;
+  $("#confirm-why").textContent=blocking.length?`先補上：${blocking.map(k=>LABEL[k]).join("、")}`:(issues.due?"交期沒寫也可以確認，回覆會給最快可出貨時間。":"每一欄都看過了，按下去才會進入試算。");
+}
+let busy=false;
+async function send(){
+  if(busy) return;
+  const text=$("#msg").value.trim();
+  if(!text){ $("#msg").focus(); return; }
+  const [who,chan]=$("#msg-who").value.split("|");
+  const meta={who,chan,t:parseFloat($("#msg-time").value)};
+  const preset=pending&&pending.text===text?pending:PRESETS.find(p=>p.text===text)||null;
+  busy=true; $("#send").disabled=true;
+  $("#chat").insertAdjacentHTML("beforeend",`<div class="msg"><span class="who">${esc(who)}・${esc(chan)}</span>${esc(text)}<span class="at">${hhmm(meta.t)}</span></div>`);
+  $("#chat").scrollTop=$("#chat").scrollHeight;
+  $("#msg").value=""; pending=null;
+  $("#calc").hidden=true; $("#human").hidden=true; $("#req").hidden=true; $("#parse-source").hidden=true; $("#parse-empty").hidden=true;
+  $("#parse-status").hidden=false; $("#parse-status-t").textContent="AI 整理中…（最多等 8 秒，超過就改用備援規則）";
+  let src="ai", why="";
+  try{
+    const j=await aiParse(text,meta);
+    FIELDS=fromAI(j);
+    if(!FIELDS.model[0]&&!FIELDS.qty[0]&&!FIELDS.customer[0]) throw {code:"empty"};
+  }catch(e){
+    src="fallback";
+    why=e&&e.code==="timeout"?"AI 超過 8 秒沒有回應":e&&e.code==="forced"?"測試：模擬 AI 呼叫失敗":e&&e.code==="unavailable"?"這個檢視無法呼叫 AI":e&&e.code==="not_granted"?"沒有允許此頁面使用 AI":"AI 呼叫失敗";
+    FIELDS=preset?JSON.parse(JSON.stringify(preset.parsed)):ruleParse(text,meta);
+    if(preset){ for(const k in FIELDS) if(FIELDS[k].length<3) FIELDS[k][2]=""; }
+  }
+  META={...meta,text,src};
+  $("#parse-status").hidden=true;
+  $("#req").hidden=false; $("#human").hidden=false;
+  const ps=$("#parse-source"); ps.hidden=false;
+  if(src==="ai"){ ps.className="source"; ps.textContent="由 AI 整理（Claude）。"; }
+  else { ps.className="source fb"; ps.textContent=`此結果由備援規則產生（${why}${preset?"；預設訊息使用預先寫好的解析結果":"；用規則比對客戶代號、機種代碼、數字＋片、日期詞"}）。`; }
+  renderReq();
+  $("#chat").insertAdjacentHTML("beforeend",`<div class="msg sys">已整理成插單需求單，等業務確認。</div>`);
+  $("#chat").scrollTop=$("#chat").scrollHeight;
+  busy=false; $("#send").disabled=false;
+  if(mode==="tour"||window.innerWidth<900) $("#parsecard").scrollIntoView({behavior:REDUCED?"auto":"smooth",block:"start"});
+}
+
+/* ================= act 2: confirm → calc → reply ================= */
+const WEEK=["日","一","二","三","四","五","六"];
+function dayLabel(off){ const d=new Date(2026,8,17+off); const md=`${d.getMonth()+1}/${d.getDate()}`; const w="週"+WEEK[d.getDay()]; return (off===0?"今天":off===1?"明天":off===2?"後天":`${md}`)+`（${off<=2?md+" ":""}${w}）`; }
+function dueOffset(s){
+  if(!s) return null; s=String(s);
+  const DN={一:1,二:2,三:3,四:4,五:5,六:6,日:7,天:7};
+  if(/今天/.test(s)) return 0; if(/明天/.test(s)) return 1; if(/後天/.test(s)) return 2;
+  let m=/下(?:週|周|禮拜|星期)([一二三四五六日天])/.exec(s); if(m) return (7-4)+DN[m[1]];
+  m=/(?:這|本)?(?:週|周|禮拜|星期)([一二三四五六日天])/.exec(s); if(m){ const o=DN[m[1]]-4; return o>=0?o:o+7; }
+  m=/(\d{1,2})\s*[\/月]\s*(\d{1,2})/.exec(s); if(m){ const d=new Date(2026,+m[1]-1,+m[2]); return Math.round((d-new Date(2026,8,17))/864e5); }
+  return null;
+}
+$("#confirm").addEventListener("click",()=>{
+  const F=FIELDS;
+  const cust=F.customer[0], type=F.type[0]==="換零件"?"eco":"add", model=F.model[0], qty=+F.qty[0];
+  const ch=F.channel[0]||"LINE"; const chan=/正式/.test(ch)?"formal":/LINE/i.test(ch)?"line":"oral";
+  const sameLine=Object.entries(RUNNING).find(([,m])=>m===model);
+  const t=META.t;
+  const {A,B}=rushCalc({cust,chan,type,qty,same:!!sameLine,t});
+  // gate slot: 10:00 or 15:00, at least 1.5 h after receipt for kitting and offline feeder setup
+  let slotDay=0, slotH; const ready=t+1.5;
+  if(ready<=10) slotH=10; else if(ready<=15) slotH=15; else {slotDay=1; slotH=10;}
+  // SMT runs 08:00-20:00 (9/17 actual: 47.3 h open / 4 lines = 11.8 h); back-end needs about half a day
+  let rem=B.prod+B.coh, d=slotDay, h=slotH;
+  while(rem>20-h){ rem-=20-h; d++; h=8; }
+  const shipDay=d+1;
+  const dueOff=dueOffset(F.due[0]);
+  const cardHtml=(X,cls,title,how,isGate)=>`<div class="mode ${cls}"><h3>${title}</h3><p class="how">${how}</p>
+    <div class="big">${f1(X.total)} <small>SMT 小時</small></div>
+    <div class="kv">
+      <span>生產本身（${f0(qty)} ÷ 150）</span><span>${f1(X.prod)} h</span>
+      <span>額外換線（${f1(X.co)} 次 × ${isGate?"0.60":"0.90"} h）</span><span>${f1(X.coh)} h</span>
+      <span>等料</span><span>${f1(X.mw)} h</span>
+      <span>拋料與故障</span><span>${f1(X.flt)} h</span>
+      <span class="em">產能損失</span><span class="em">${f0(X.lostBoards)} 片</span>
+      <span>損失毛利（× 180 元）</span><span>${f1(X.lostMargin/10000)} 萬</span>
+      <span>被推遲的其他訂單</span><span>${f0(X.displaced)} 片，${X.delayDays} 天</span>
+      <span class="em">可能罰款（乙、丙）</span><span class="em">約 ${wan(X.penalty)} 萬</span>
+    </div></div>`;
+  const chanTxt=chan==="formal"?"正式單":chan==="line"?"LINE":"口頭轉述";
+  $("#calc-title").textContent=`試算：${cust} 的 ${model} ${type==="eco"?"換零件":"追加"} ${f0(qty)} 片，${hhmm(t)} 收到`;
+  $("#calc-sub").textContent=`兩種做法都會把這 ${f0(qty)} 片做完，差別在於額外吃掉的 SMT 時間，以及誰被推遲。`;
+  $("#cmp").innerHTML=
+    cardHtml(A,"bad","現在的做法：收到就插",`${chanTxt}傳進來，生管口頭說「可以」，SMT 中途停線換線。`,false)+
+    cardHtml(B,"good","提案做法：閘門時段＋合併",`排進${dayLabel(slotDay).split("（")[0]} ${String(slotH).padStart(2,"0")}:00 插單時段${sameLine?`，和 ${sameLine[0]} 線正在跑的 ${model} 合併`:""}；先齊料、線外預裝飛達。`,true);
+  $("#calc-sum").innerHTML=`閘門少吃掉 <b>${f1(A.lost-B.lost)} 小時</b> SMT，少損失 <b>${f0(A.lostBoards-B.lostBoards)} 片</b>產能，罰款風險從約 ${wan(A.penalty)} 萬降到約 ${wan(B.penalty)} 萬。${cust==="甲"?"甲的單照收、照做。":""}`;
+  const what=type==="eco"?`${model} 換料（${f0(qty)} 片）已安排${dayLabel(slotDay).split("（")[0]} ${String(slotH).padStart(2,"0")}:00 起切換新料，舊料即日起停用`:`${model} 追加 ${f0(qty)} 片已安排${dayLabel(slotDay).split("（")[0]} ${String(slotH).padStart(2,"0")}:00 生產`;
+  const custName=cust==="甲"?"客戶甲":cust==="乙"?"客戶乙":"客戶丙";
+  $("#reply").value=`${custName}您好：${what}，預計${dayLabel(shipDay)}12:00 前出貨。如有變動會再通知您。——昇嶺電子 業務`;
+  let note=`排程規則：插單只進 10:00、15:00 兩個時段，時段前要留 1.5 小時齊料 <span class="guess">【我猜的】</span>。`;
+  if(dueOff===null) note+=` 客戶沒有給明確交期，回覆的是最快可出貨時間。`;
+  else note+= shipDay<=dueOff?` 客戶要求「${esc(F.due[0])}」，可以準時。`:` 客戶要求「${esc(F.due[0])}」，閘門排程會晚 ${shipDay-dueOff} 天，請生管評估是否動用凍結區外的產能。`;
+  $("#reply-note").innerHTML=note+" 這是草稿，業務確認後才送出。";
+  $("#copy-msg").textContent="";
+  $("#calc").hidden=false;
+  $("#chat").insertAdjacentHTML("beforeend",`<div class="msg sys">業務已確認，系統完成試算。</div>`);
+  $("#calc").scrollIntoView({behavior:REDUCED?"auto":"smooth",block:"start"});
+});
+$("#copy").addEventListener("click",()=>{
+  const ta=$("#reply");
+  const ok=()=>{$("#copy-msg").textContent="已複製";};
+  const fb=()=>{ta.focus();ta.select();$("#copy-msg").textContent="已選取文字，請按 Ctrl+C（手機長按）複製";};
+  try{ navigator.clipboard.writeText(ta.value).then(ok,fb); }catch(e){ fb(); }
+});
+
+/* ================= act 3: break-even chart ================= */
+const BE={xs:[],ship:[],otd:[]};
+for(let k=0;k<=24;k++){ const s=k*0.05, r=simMonth(FULL,s); BE.xs.push(Math.round(s*100)); BE.ship.push(+(r.ship/10).toFixed(2)); BE.otd.push(+(r.otd*100).toFixed(1)); }
+const TARGET=12.54;
+const firstOK=BE.xs.findIndex((x,i)=>BE.ship[i]>=TARGET&&BE.otd[i]>=90);
+const minPct=firstOK>=0?BE.xs[firstOK]:null;
+$("#be-pills").innerHTML=(minPct!==null?`<span class="pill ok">全套做到 ${minPct}% 就達標</span>`:"")+
+  `<span class="pill mid">0%（什麼都不做）：月出貨 ${BE.ship[0].toFixed(2)} 萬片</span>`+
+  `<span class="pill ok">100%（我們的預估）：月出貨 ${BE.ship[20].toFixed(2)} 萬片、準時率 ${BE.otd[20]}%</span>`;
+let beChart=null;
+function drawChart(){
+  if(typeof Chart==="undefined"){
+    const t=$("#be-table"); t.hidden=false; $("#c-be").parentElement.hidden=true;
+    t.innerHTML=`<table><tr><th>效果強度</th><th>月出貨（萬片）</th><th>準時率</th></tr>${BE.xs.filter((_,i)=>i%2===0).map((x,j)=>`<tr><td>${x}%</td><td>${BE.ship[j*2].toFixed(2)}</td><td>${BE.otd[j*2]}%</td></tr>`).join("")}</table>`;
+    return;
+  }
+  if(beChart) beChart.destroy();
+  const ink=css("--ink-2"), grid=css("--line");
+  const mark=BE.xs.map((x,i)=>i===firstOK?BE.ship[i]:null);
+  beChart=new Chart($("#c-be"),{type:"line",
+    data:{labels:BE.xs.map(x=>x+"%"),datasets:[
+      {label:"全套方案：月出貨",data:BE.ship,borderColor:css("--s1"),backgroundColor:css("--s1"),borderWidth:3,pointRadius:0,pointHoverRadius:5,tension:.2},
+      {label:"目標 12.54 萬片",data:BE.xs.map(()=>TARGET),borderColor:css("--s4"),borderDash:[6,4],borderWidth:1.5,pointRadius:0},
+      {label:minPct!==null?`做到 ${minPct}% 就達標`:"達標點",data:mark,borderColor:css("--good"),backgroundColor:css("--good"),pointRadius:8,pointHoverRadius:9,showLine:false}
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,animation:false,interaction:{mode:"index",intersect:false},
+      plugins:{legend:{labels:{color:ink,boxWidth:12,boxHeight:12,font:{family:"Noto Sans TC",size:13}}},
+        tooltip:{titleFont:{family:"Noto Sans TC"},bodyFont:{family:"IBM Plex Mono"},filter:it=>it.datasetIndex===0,
+          callbacks:{label:it=>`月出貨 ${it.raw.toFixed(2)} 萬片`,afterLabel:it=>`準時率 ${BE.otd[it.dataIndex]}%`}}},
+      scales:{x:{title:{display:true,text:"效果強度（100% = 我們的預估）",color:ink},ticks:{color:ink,maxRotation:0,autoSkip:true,maxTicksLimit:7},grid:{display:false},border:{color:grid}},
+        y:{min:11,max:13.5,title:{display:true,text:"月出貨（萬片）",color:ink},ticks:{color:ink,stepSize:0.5},grid:{color:grid},border:{display:false}}}}});
+}
+drawChart();
+if(window.matchMedia) matchMedia("(prefers-color-scheme: dark)").addEventListener?.("change",drawChart);
+new MutationObserver(drawChart).observe(document.documentElement,{attributes:true,attributeFilter:["data-theme"]});
+</script>
+
+</body>
+</html>

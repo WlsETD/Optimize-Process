@@ -1,0 +1,9 @@
+{
+  "name": "shengling-rush-entry-demo-v2",
+  "private": true,
+  "description": "昇嶺電子 單一插單入口 Demo v2（四個端，模擬 LINE）",
+  "scripts": {
+    "test": "node --test test/engine.test.cjs test/store.test.cjs test/ai-assist.test.cjs",
+    "build": "node build.mjs"
+  }
+}

@@ -1,0 +1,2964 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>昇嶺插單入口 v2</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+/* 版面：內部單據。藍為主色、橘為強調；LINE 用綠。
+   顏色意義：原文＝黑邊白底；AI＝淺藍；人確認／決定＝深藍實心；【我猜的】＝橘色虛線；低信心＝紅色虛線。 */
+:root {
+  /* 藍（主色）— 深 → 淺 */
+  --b900: #00335F;
+  --b800: #01457A;
+  --b700: #01528F;
+  --b600: #2468A2;
+  --b500: #3E7FB4;
+  --b300: #A9C6E2;
+  --b100: #E4EEF7;
+  --b50:  #F2F7FB;
+  /* 橘（強調）— 深 → 淺 */
+  --o800: #8A4E00;
+  --o700: #E78C00;
+  --o600: #FCA200;
+  --o500: #FDB13A;
+  --o300: #FECC72;
+  --o100: #FFF3DD;
+  /* LINE */
+  --line-g: #06C755;
+  --line-g-d: #04A346;
+  --line-g-t: #027A36;
+  --line-g-bg: #E7F9EE;
+
+  --bg: #ECF0F4;
+  --panel: #FFFFFF;
+  --line: #D5DCE4;
+  --line2: #A3B0BE;
+  --ink: #14212E;
+  --mute: #536273;
+  --raw-bg: #FFFFFF;
+
+  --human: var(--b900);
+  --human-bg: #E8ECF2;
+  --human-line: var(--b900);
+
+  --ai: var(--b600);
+  --ai-ink: var(--b800);
+  --ai-bg: #EAF2FA;
+  --ai-line: var(--b300);
+
+  --guess: var(--o800);
+  --guess-bg: var(--o100);
+  --guess-line: var(--o500);
+
+  --low: #C0261B;
+  --low-bg: #FCEBE9;
+  --amber: var(--o800);
+  --amber-bg: var(--o100);
+
+  --sans: "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", "Heiti TC", system-ui, sans-serif;
+  --mono: "IBM Plex Mono", "Noto Sans TC", ui-monospace, "SF Mono", Consolas, "Microsoft JhengHei", monospace;
+  color-scheme: light;
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font: 14px/1.65 var(--sans);
+  font-variant-numeric: tabular-nums;
+  -webkit-text-size-adjust: 100%;
+}
+h1, h2, h3, h4, p { margin: 0; }
+button, input, select, textarea { font: inherit; color: inherit; }
+:focus-visible { outline: 3px solid var(--o600); outline-offset: 2px; }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+/* ---------- 頂列 ---------- */
+.top {
+  display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
+  padding: 10px 24px; background: var(--b900); color: #fff;
+  border-bottom: 4px solid var(--o500);
+}
+.brand { display: flex; align-items: center; gap: 10px; }
+.brand b { font-size: 16px; letter-spacing: .08em; display: flex; align-items: center; gap: 9px; }
+.brand b::before { content: ""; width: 10px; height: 18px; background: var(--o500); display: inline-block; }
+.brand span { font-size: 14px; color: #BFD3E6; }
+.top-mid { color: #BFD3E6; font-size: 12.5px; display: flex; gap: 8px; align-items: center; }
+.top-r { margin-left: auto; display: flex; gap: 8px; align-items: center; }
+.clock { font-size: 12.5px; color: #BFD3E6; margin-right: 6px; }
+.top .btn.ghost { color: #fff; border: 1.5px solid #7FA3C6; background: transparent; box-shadow: none; }
+.top .btn.ghost:hover:not(:disabled) { background: #fff; color: var(--b900); border-color: #fff; }
+.top .btn.ghost:active:not(:disabled) { background: var(--o500); border-color: var(--o500); color: var(--b900); }
+
+/* ---------- 步驟列 ---------- */
+.steps {
+  display: grid; grid-template-columns: repeat(5, 1fr);
+  background: var(--panel); border-bottom: 1px solid var(--line2);
+}
+.step {
+  display: flex; align-items: center; gap: 10px; text-align: left;
+  padding: 12px 18px; border: 0; border-right: 1px solid var(--line); background: transparent;
+  cursor: pointer; min-height: 58px; position: relative; color: var(--ink);
+}
+.step:last-child { border-right: 0; }
+.step:hover { background: var(--b50); }
+.step .n {
+  flex: none; width: 26px; height: 26px; display: grid; place-items: center;
+  border: 1.5px solid var(--b500); color: var(--b700); font-size: 12.5px; font-weight: 700; background: #fff;
+}
+.step .t { display: block; font-weight: 700; font-size: 14.5px; line-height: 1.25; }
+.step .r { display: block; font-size: 12px; color: var(--mute); line-height: 1.25; }
+.step .cnt { margin-left: auto; font-size: 12px; color: var(--b800); border: 1px solid var(--b300); padding: 0 7px; min-width: 24px; text-align: center; background: var(--b50); font-weight: 700; }
+.step[aria-current="page"] { background: var(--b100); box-shadow: inset 0 -4px 0 var(--o500); }
+.step[aria-current="page"] .n { background: var(--b700); color: #fff; border-color: var(--b700); }
+.step[aria-current="page"] .t { color: var(--b900); }
+.step[aria-current="page"] .cnt { background: var(--o500); border-color: var(--o500); color: var(--b900); }
+
+/* ---------- 色彩說明 ---------- */
+.legend {
+  display: flex; flex-wrap: wrap; gap: 6px 18px; align-items: center;
+  padding: 8px 24px; font-size: 12.5px; color: var(--mute); border-bottom: 1px solid var(--line); background: #F6F8FA;
+}
+.legend i { display: inline-block; width: 14px; height: 14px; vertical-align: -2px; margin-right: 6px; border: 1px solid; }
+.lg-raw i { background: #fff; border-color: var(--ink); border-left-width: 4px; }
+.lg-ai i { background: var(--ai-bg); border-color: var(--ai); }
+.lg-human i { background: var(--human); border-color: var(--human); }
+.lg-guess i { background: var(--guess-bg); border-color: var(--o700); border-style: dashed; }
+.lg-low i { background: var(--low-bg); border-color: var(--low); border-style: dashed; }
+
+/* ---------- 版心 ---------- */
+main { max-width: 1320px; margin: 0 auto; padding: 22px 24px 64px; }
+.ph { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; margin-bottom: 4px; }
+.ph h1 { font-size: 20px; line-height: 1.3; color: var(--b900); }
+.lede { color: var(--mute); margin-bottom: 18px; max-width: 70ch; }
+.cols { display: grid; gap: 20px; align-items: start; }
+.cols.c-2-1 { grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr); }
+.cols.c-1-1 { grid-template-columns: minmax(0, 1fr) minmax(0, 1.12fr); }
+.cols.c-board { grid-template-columns: minmax(0, 1.5fr) minmax(320px, 1fr); }
+.cols.c-reply { grid-template-columns: 280px minmax(0, 1fr); }
+
+.panel { background: var(--panel); border: 1px solid var(--line2); }
+.panel > .pb { padding: 16px 18px; }
+.ptitle {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  padding: 9px 18px; border-bottom: 1px solid var(--line); font-weight: 700; font-size: 14px; background: #F6F8FA;
+}
+.ptitle small { font-weight: 400; color: var(--mute); font-size: 12.5px; }
+.sub { font-size: 12.5px; color: var(--mute); }
+.stack > * + * { margin-top: 14px; }
+.row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.sp { margin-left: auto; }
+
+/* ---------- 標籤 ---------- */
+.tag {
+  display: inline-block; font-size: 11.5px; line-height: 1.5; padding: 0 6px; border: 1px solid; font-weight: 500; white-space: nowrap;
+}
+.tag.raw { color: var(--ink); border-color: var(--ink); background: #fff; }
+.tag.ai { color: var(--ai-ink); border-color: var(--ai-line); background: var(--ai-bg); }
+.tag.human { color: #fff; border-color: var(--human); background: var(--human); }
+.tag.guess { color: var(--guess); border-color: var(--o700); background: var(--guess-bg); border-style: dashed; }
+.tag.demo { color: var(--mute); border-color: var(--line2); background: transparent; }
+.top .tag.demo { color: var(--b900); border-color: var(--o500); background: var(--o500); font-weight: 700; }
+.tag.low { color: var(--low); border-color: var(--low); background: var(--low-bg); border-style: dashed; }
+.tag.data { color: var(--ink); border-color: var(--line2); background: #EEF1F4; }
+
+/* 來源：LINE 用綠色 */
+.src { display: inline-block; font-size: 12px; line-height: 1.6; padding: 0 7px; border: 1px solid var(--line2); color: var(--ink); background: #fff; white-space: nowrap; }
+.src.src-line { background: var(--line-g); border-color: var(--line-g); color: #fff; font-weight: 700; }
+
+/* ---------- 按鈕：實心深藍＝主要動作，白底藍框＝次要，灰底虛線＝不能按 ---------- */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  min-height: 38px; padding: 0 18px; border: 1.5px solid var(--b700); background: #fff; color: var(--b700);
+  cursor: pointer; font-weight: 700; border-radius: 3px;
+  box-shadow: inset 0 -2px 0 var(--b100);
+  transition: background-color .12s, color .12s, border-color .12s, box-shadow .12s;
+}
+.btn:hover:not(:disabled) { background: var(--b100); border-color: var(--b900); color: var(--b900); box-shadow: inset 0 -2px 0 var(--b300); }
+.btn:active:not(:disabled) { background: var(--b300); border-color: var(--b900); color: var(--b900); box-shadow: inset 0 2px 3px rgba(0, 51, 95, .25); transform: translateY(1px); }
+.btn.primary { background: var(--b700); border-color: var(--b900); color: #fff; box-shadow: inset 0 -3px 0 var(--b900); }
+.btn.primary:hover:not(:disabled) { background: var(--b800); color: #fff; box-shadow: inset 0 -3px 0 #001F3A; }
+.btn.primary:active:not(:disabled) { background: var(--b900); color: #fff; box-shadow: inset 0 2px 4px rgba(0, 0, 0, .35); }
+.btn.ghost { background: transparent; }
+.btn.link { border: 0; background: transparent; text-decoration: underline; text-underline-offset: 3px; padding: 0 4px; min-height: 28px; color: var(--b700); box-shadow: none; font-weight: 500; }
+.btn.link:hover:not(:disabled) { background: transparent; color: var(--b900); text-decoration-thickness: 2px; box-shadow: none; }
+.btn.link:active:not(:disabled) { background: transparent; box-shadow: none; }
+.btn.sm { min-height: 30px; padding: 0 12px; font-size: 13px; }
+.btn:disabled, .btn.primary:disabled {
+  cursor: not-allowed; background: #E6E9ED; border: 1.5px dashed #A3ACB7; color: #8A939E; font-weight: 500; box-shadow: none;
+}
+.why { font-size: 12.5px; color: var(--mute); }
+.why.warn { color: var(--amber); font-weight: 500; }
+
+.seg { display: inline-flex; border: 1.5px solid var(--b700); background: #fff; flex-wrap: wrap; }
+.seg label { cursor: pointer; }
+.seg input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+.seg span { display: block; padding: 6px 14px; border-right: 1px solid var(--b300); min-height: 34px; line-height: 22px; color: var(--b800); font-weight: 500; }
+.seg label:last-child span { border-right: 0; }
+.seg label:hover span { background: var(--b100); }
+.seg input:checked + span { background: var(--b700); color: #fff; font-weight: 700; }
+.seg input[value="LINE"]:checked + span { background: var(--line-g); color: #fff; }
+.seg input:focus-visible + span { outline: 3px solid var(--o600); outline-offset: 2px; }
+
+/* ---------- 表單 ---------- */
+label.lb { display: block; font-weight: 700; font-size: 13px; margin-bottom: 4px; }
+input[type=text], input[type=number], input[type=date], input[type=time], select, textarea {
+  width: 100%; min-height: 36px; padding: 6px 10px; border: 1px solid var(--line2); background: #fff; border-radius: 3px;
+}
+input:hover, select:hover, textarea:hover { border-color: var(--b500); }
+textarea { resize: vertical; line-height: 1.6; }
+select { appearance: auto; }
+.hint { font-size: 12.5px; color: var(--mute); margin-top: 4px; }
+.fgrid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+
+/* ---------- 原文 ---------- */
+pre.raw {
+  margin: 0; padding: 12px 14px; background: var(--raw-bg); border: 1px solid var(--line2); border-left: 4px solid var(--ink);
+  font: 14px/1.8 var(--mono); white-space: pre-wrap; word-break: break-word; color: var(--ink);
+}
+pre.raw mark { background: none; color: inherit; padding: 0 1px; border-bottom: 2px solid var(--ai); }
+pre.raw mark.low { border-bottom: 2px dashed var(--low); background: var(--low-bg); }
+.kv { display: grid; grid-template-columns: 7.5em 1fr; gap: 4px 12px; margin: 10px 0 0; font-size: 13px; align-items: center; }
+.kv dt { color: var(--mute); }
+.kv dd { margin: 0; }
+
+/* ---------- 範例按鈕 ---------- */
+.samples { display: grid; gap: 8px; }
+.sample {
+  display: grid; grid-template-columns: 76px 1fr; gap: 12px; align-items: baseline; text-align: left;
+  padding: 9px 12px; border: 1px solid var(--line2); background: #fff; cursor: pointer; border-radius: 3px; color: var(--ink);
+}
+.sample:hover { background: var(--b50); border-color: var(--b500); }
+.sample[aria-pressed="true"] { border-color: var(--b700); background: var(--b50); box-shadow: inset 4px 0 0 var(--o500); }
+.sample b { font-size: 13px; color: var(--b800); }
+.sample .tx { font-family: var(--mono); font-size: 13px; line-height: 1.5; }
+.sample .h { grid-column: 2; font-size: 12px; color: var(--mute); }
+
+/* ---------- 欄位表 ---------- */
+table { border-collapse: collapse; width: 100%; }
+.fields th, .fields td { padding: 8px 10px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; }
+.fields th { width: 6.5em; font-weight: 700; white-space: nowrap; }
+.fields tr:last-child th, .fields tr:last-child td { border-bottom: 0; }
+.fields .fval { min-width: 150px; }
+.fields .fnote { font-size: 12.5px; color: var(--mute); }
+.frow.low > td, .frow.low > th { background: var(--low-bg); }
+.frow.low .fval input, .frow.low .fval select { border: 1.5px dashed var(--low); background: #fff; }
+.frow.done .fval input, .frow.done .fval select { border: 1.5px solid var(--human); background: var(--human-bg); font-weight: 700; color: var(--b900); }
+.frow.ok .fval input, .frow.ok .fval select { background: var(--ai-bg); border-color: var(--ai-line); }
+.conf { display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; white-space: nowrap; }
+.conf i { display: inline-block; width: 46px; height: 6px; background: #D5DCE4; position: relative; }
+.conf i b { position: absolute; left: 0; top: 0; bottom: 0; background: var(--ai); }
+.frow.low .conf i b { background: var(--low); }
+.lowtxt { color: var(--low); font-weight: 700; }
+
+/* ---------- AI／人 區塊 ---------- */
+.ai-block { background: var(--ai-bg); border: 1px solid var(--ai-line); border-left: 4px solid var(--ai); color: #0E2C4A; }
+.ai-block .ptitle { border-bottom-color: var(--ai-line); background: transparent; }
+.ai-block .pb { padding: 12px 16px; }
+.ai-block .sub { color: #3A5D84; }
+.human-block { background: var(--human-bg); border: 1px solid var(--human); border-left: 5px solid var(--human); color: var(--b900); }
+.human-block .sub { color: #3D5574; }
+.engine { padding: 8px 12px; font-size: 13px; border: 1px solid var(--ai-line); background: var(--ai-bg); color: #0E2C4A; border-left: 4px solid var(--ai); }
+.engine.fallback { border-color: var(--o500); background: var(--o100); color: #5A3500; border-left-color: var(--o700); }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+.chip-btn { border: 1.5px solid var(--b700); background: #fff; color: var(--b700); padding: 3px 12px; cursor: pointer; font-size: 13px; font-weight: 700; border-radius: 3px; min-height: 32px; }
+.chip-btn:hover { background: var(--b700); color: #fff; }
+.chip-btn:active { background: var(--b900); border-color: var(--b900); color: #fff; }
+.fu { margin: 0; padding-left: 1.4em; }
+.fu li + li { margin-top: 10px; }
+
+/* ---------- 狀態標 ---------- */
+.chip { display: inline-block; font-size: 12px; padding: 0 8px; border: 1px solid var(--line2); background: #fff; line-height: 1.7; white-space: nowrap; font-weight: 500; }
+.chip.s-draft { border-color: var(--o700); color: var(--o800); background: var(--o100); }
+.chip.s-queued { border-color: var(--ai); color: var(--ai-ink); background: var(--ai-bg); }
+.chip.s-decided, .chip.s-replied, .chip.s-done { border-color: var(--human); color: #fff; background: var(--human); }
+.chip.s-returned { color: var(--mute); }
+.pill { display: inline-block; min-width: 2.2em; text-align: center; padding: 0 8px; font-weight: 700; border: 1px solid; line-height: 1.6; }
+.pill.l0 { color: var(--b800); border-color: var(--b300); background: #fff; }
+.pill.l1 { color: var(--o800); border-color: var(--o500); background: var(--o100); }
+.pill.l2 { color: var(--low); border-color: var(--low); background: var(--low-bg); }
+.pill.l3 { color: #fff; border-color: var(--low); background: var(--low); }
+
+/* ---------- 單據列表 ---------- */
+.list { list-style: none; margin: 0; padding: 0; }
+.list li { border-bottom: 1px solid var(--line); }
+.list li:last-child { border-bottom: 0; }
+.list button.item { width: 100%; text-align: left; border: 0; background: transparent; padding: 10px 14px; cursor: pointer; display: grid; gap: 3px; color: var(--ink); }
+.list button.item:hover { background: var(--b50); }
+.list button.item[aria-current="true"] { background: var(--b100); box-shadow: inset 4px 0 0 var(--o500); }
+.item .l1 { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.item .l2 { font-family: var(--mono); font-size: 12.5px; color: var(--mute); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.empty { padding: 22px 18px; color: var(--mute); border: 1px dashed var(--line2); background: transparent; }
+
+/* ---------- 看板單 ---------- */
+.ticket { background: var(--panel); border: 1px solid var(--line2); }
+.ticket + .ticket { margin-top: 16px; }
+.ticket.focus { border-color: var(--b700); box-shadow: 0 0 0 1px var(--b700), inset 0 4px 0 var(--o500); }
+.t-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 9px 16px; border-bottom: 1px solid var(--line); background: #F6F8FA; }
+.ticket.focus .t-head { padding-top: 12px; }
+.t-head b { font-size: 15px; color: var(--b900); }
+.t-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr); }
+.t-grid > section { padding: 14px 16px; min-width: 0; }
+.t-grid > .t-orig { border-right: 1px solid var(--line); }
+.t-grid h4 { font-size: 13px; display: flex; gap: 8px; align-items: center; margin-bottom: 8px; flex-wrap: wrap; }
+.t-grid .t-ai { background: var(--ai-bg); border-left: 0; color: #0E2C4A; }
+.t-ai h4 small { font-weight: 400; color: #3A5D84; }
+.mini { font-size: 13px; }
+.mini th { width: 5.5em; font-weight: 500; color: var(--mute); text-align: left; padding: 3px 8px 3px 0; white-space: nowrap; }
+.mini td { padding: 3px 0; }
+.chg { color: var(--b900); font-weight: 700; font-size: 12px; margin-left: 6px; border-bottom: 2px solid var(--b900); }
+.arow { display: grid; grid-template-columns: 6em 1fr; gap: 4px 12px; padding: 7px 0; border-bottom: 1px solid var(--ai-line); }
+.arow:last-of-type { border-bottom: 0; }
+.arow dt { font-weight: 700; font-size: 13px; color: var(--b800); }
+.arow dd { margin: 0; }
+.fm { font-family: var(--mono); font-size: 12.5px; color: #3A5D84; display: block; margin-top: 2px; }
+.t-act { padding: 12px 16px; border-top: 1px solid var(--line); display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+details.basis { margin-top: 10px; border-top: 1px solid var(--ai-line); padding-top: 8px; }
+details.basis summary { cursor: pointer; font-weight: 700; font-size: 13px; color: var(--b700); }
+details.basis summary:hover { color: var(--b900); text-decoration: underline; }
+.basis .fp { margin-top: 8px; color: #3A5D84; }
+.cmp { font-size: 12.5px; margin-top: 8px; background: #fff; color: var(--ink); }
+.cmp th, .cmp td { padding: 5px 8px; border: 1px solid var(--line); text-align: right; white-space: nowrap; }
+.cmp th { background: #EEF1F4; font-weight: 500; text-align: right; }
+.cmp td:first-child, .cmp th:first-child { text-align: left; }
+.cmp tr.best td { background: var(--ai-bg); font-weight: 700; }
+.cmp tr.sel td { background: var(--human-bg); font-weight: 700; color: var(--b900); }
+.cmp tr.sel td:first-child { box-shadow: inset 4px 0 0 var(--human); }
+.scroll-x { overflow-x: auto; }
+.adjust { border-top: 1px dashed var(--line2); padding: 14px 16px; background: #fff; }
+.adjust h4 { margin-bottom: 8px; font-size: 13.5px; display: flex; gap: 8px; align-items: center; }
+.params { font-size: 12.5px; margin: 8px 0 0; padding-left: 1.2em; }
+.params li + li { margin-top: 2px; }
+
+/* ---------- 時間軸 ---------- */
+.tl { padding: 12px 14px 14px; background: #fff; }
+.tl .day { display: grid; grid-template-columns: 62px 1fr; gap: 8px; align-items: center; margin-top: 6px; }
+.tl .dl { font-size: 12px; color: var(--mute); line-height: 1.3; }
+.tl .track { position: relative; height: 30px; background: #F0F3F6; border: 1px solid var(--line); }
+.tl .blk {
+  position: absolute; top: 2px; bottom: 2px; background: #D3DEEA; border: 1px solid #9DB3CA; overflow: hidden;
+  font-size: 11px; line-height: 24px; padding: 0 4px; white-space: nowrap; text-overflow: ellipsis; color: var(--b900);
+}
+.tl .blk.x { background: var(--o500); border-color: var(--o700); color: #3D2400; font-weight: 700; }
+.tl .blk.late { border: 2px solid var(--low); }
+.tl .blk.run { background: #B9CBDE; }
+.tl .tick { position: absolute; top: 0; bottom: 0; width: 0; border-left: 1px dashed var(--b500); pointer-events: none; }
+.tl .tick.now { border-left: 2px solid var(--ink); }
+.tl .scale { display: grid; grid-template-columns: 62px 1fr; gap: 8px; font-size: 11px; color: var(--mute); }
+.tl .scale div { position: relative; height: 14px; }
+.tl .scale div span { position: absolute; transform: translateX(-50%); }
+.tl-leg { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 12px; color: var(--mute); margin-top: 10px; }
+.tl-leg i { display: inline-block; width: 12px; height: 12px; vertical-align: -2px; margin-right: 5px; border: 1px solid #9DB3CA; background: #D3DEEA; }
+.tl-leg i.x { background: var(--o500); border-color: var(--o700); }
+.tl-leg i.late { border: 2px solid var(--low); background: #D3DEEA; }
+.sticky { position: sticky; top: 12px; }
+
+/* ---------- 回覆頁 ---------- */
+.chips-row { display: flex; gap: 8px; flex-wrap: wrap; }
+.status3 { display: grid; grid-template-columns: repeat(3, 1fr); border: 1px solid var(--line2); background: #fff; }
+.status3 > div { padding: 8px 12px; border-right: 1px solid var(--line); }
+.status3 > div:last-child { border-right: 0; }
+.status3 .k { font-size: 12px; color: var(--mute); }
+.status3 .v { font-weight: 700; }
+.v.good { color: var(--b900); }
+.v.bad { color: var(--low); }
+.v.mid { color: var(--o800); }
+.noreply { border: 1.5px dashed var(--low); padding: 18px; color: var(--low); text-align: center; background: var(--low-bg); }
+.cmpdue { display: grid; grid-template-columns: 1fr auto 1fr; gap: 12px; align-items: center; padding: 10px 14px; background: #fff; border: 1px solid var(--line2); border-top: 3px solid var(--b700); }
+.cmpdue .a { font-size: 12px; color: var(--mute); }
+.cmpdue .b { font-size: 17px; font-weight: 700; color: var(--b900); }
+.cmpdue .b.lowtxt { color: var(--low); }
+.cmpdue .ar { color: var(--o700); font-weight: 700; font-size: 18px; }
+
+/* ---------- 指標頁 ---------- */
+.kpis { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0; border: 1px solid var(--line2); background: var(--panel); border-top: 4px solid var(--b700); }
+.kpi { padding: 14px 16px; border-right: 1px solid var(--line); }
+.kpi:last-child { border-right: 0; }
+.kpi h3 { font-size: 13px; color: var(--mute); font-weight: 500; }
+.kpi .big { font-size: 26px; font-weight: 700; line-height: 1.3; margin: 2px 0 6px; color: var(--b900); }
+.kpi .big small { font-size: 13px; font-weight: 500; color: var(--mute); margin-left: 4px; }
+.kpi dl { margin: 0; font-size: 12.5px; display: grid; grid-template-columns: 5.2em 1fr; gap: 1px 8px; }
+.kpi dt { color: var(--mute); }
+.kpi dd { margin: 0; }
+.audit th, .audit td { padding: 7px 10px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; font-size: 13px; }
+.audit th { background: #EEF1F4; font-weight: 500; color: var(--mute); position: sticky; top: 0; }
+.audit tbody tr:hover td { background: var(--b50); }
+.audit td.t { white-space: nowrap; color: var(--mute); }
+.audit .who { white-space: nowrap; }
+.footnote { margin-top: 18px; font-size: 12.5px; color: var(--mute); }
+
+/* ---------- 設定側欄 ---------- */
+.scrim { position: fixed; inset: 0; background: rgba(0, 31, 58, .45); z-index: 40; }
+.drawer {
+  position: fixed; top: 0; right: 0; bottom: 0; width: min(560px, 100vw); z-index: 50;
+  background: var(--panel); border-left: 4px solid var(--b700); display: flex; flex-direction: column;
+}
+.drawer header { display: flex; align-items: center; gap: 10px; padding: 12px 18px; border-bottom: 1px solid var(--line2); background: #F6F8FA; }
+.drawer header h2 { font-size: 16px; color: var(--b900); }
+.drawer .body { overflow: auto; padding: 4px 18px 18px; flex: 1; }
+.drawer footer { padding: 12px 18px; border-top: 1px solid var(--line2); display: flex; gap: 10px; align-items: center; flex-wrap: wrap; background: #F6F8FA; }
+.sg { padding: 14px 0; border-bottom: 1px solid var(--line); }
+.sg:last-child { border-bottom: 0; }
+.sg h3 { font-size: 14px; margin-bottom: 4px; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; color: var(--b900); }
+.sg .sub { margin-bottom: 10px; }
+.srow { display: grid; grid-template-columns: minmax(0, 1fr) 132px; gap: 4px 12px; align-items: center; padding: 6px 0; }
+.srow .nm { font-size: 13.5px; }
+.srow .nm small { display: block; color: var(--mute); font-size: 12px; }
+.srow.guess { background: var(--guess-bg); border: 1px dashed var(--o700); padding: 6px 10px; margin: 4px 0; }
+.srow.locked input { background: #EEF1F4; color: var(--mute); }
+.srow input[type=checkbox] { width: 20px; height: 20px; min-height: 0; justify-self: start; accent-color: var(--b700); }
+.two { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+
+/* ---------- 提示 ---------- */
+#toast {
+  position: fixed; left: 50%; bottom: 22px; transform: translateX(-50%); z-index: 80;
+  background: var(--b900); color: #fff; padding: 10px 16px; max-width: min(92vw, 560px); font-size: 13.5px; border-radius: 3px;
+  border-left: 4px solid var(--o500);
+  opacity: 0; pointer-events: none; transition: opacity .15s;
+}
+#toast.on { opacity: 1; }
+.busy { display: inline-block; width: 12px; height: 12px; border: 2px solid currentColor; border-right-color: transparent; border-radius: 50%; animation: sp .8s linear infinite; vertical-align: -2px; margin-right: 6px; }
+@keyframes sp { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .busy { animation: none; } #toast, .btn { transition: none; } .btn:active:not(:disabled) { transform: none; } }
+
+/* ---------- 窄螢幕 ---------- */
+@media (max-width: 1100px) {
+  .cols.c-2-1, .cols.c-1-1, .cols.c-board, .cols.c-reply { grid-template-columns: minmax(0, 1fr); }
+  .sticky { position: static; }
+  .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .kpi:nth-child(2) { border-right: 0; }
+  .kpi:nth-child(-n+2) { border-bottom: 1px solid var(--line); }
+}
+@media (max-width: 760px) {
+  .top, .legend { padding-left: 16px; padding-right: 16px; }
+  main { padding: 16px 16px 56px; }
+  .steps { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+  .step { flex-direction: column; align-items: flex-start; gap: 4px; padding: 8px 8px; min-height: 64px; }
+  .step .r, .step .cnt { display: none; }
+  .step .t { font-size: 12.5px; }
+  .t-grid { grid-template-columns: minmax(0, 1fr); }
+  .t-grid > .t-orig { border-right: 0; border-bottom: 1px solid var(--line); }
+  .fgrid { grid-template-columns: 1fr; }
+  .fields, .fields tbody, .fields tr, .fields th, .fields td { display: block; width: 100%; }
+  .fields tr { border-bottom: 1px solid var(--line); padding: 8px 0; }
+  .fields th, .fields td { border: 0; padding: 2px 10px; }
+  .kpis { grid-template-columns: minmax(0, 1fr); }
+  .kpi { border-right: 0; border-bottom: 1px solid var(--line); }
+  .status3 { grid-template-columns: 1fr; }
+  .status3 > div { border-right: 0; border-bottom: 1px solid var(--line); }
+  .cmpdue { grid-template-columns: 1fr; }
+  .top-r { margin-left: 0; }
+}
+
+
+/* =====================================================================
+   v2 新增：四個端、模擬 LINE、LIFF 小頁、進度條
+   顏色意義沿用 v1（style.css）；LINE 相關一律綠色；「模擬」用綠色虛線標籤。
+   ===================================================================== */
+:root {
+  --line-chat: #C5D3E4;
+  --line-me: #8DE055;
+  --line-me-ink: #14300A;
+  --sim-bg: #F3F6F2;
+  --sim-line: #7FA38B;
+}
+.tag.sim { color: var(--line-g-t); border-color: var(--line-g-t); background: var(--line-g-bg); border-style: dashed; font-weight: 700; }
+.chip.s-received { border-color: var(--o700); color: var(--o800); background: var(--o100); }
+.top .tag.sim { background: #fff; }
+.top .clock { margin-right: 0; }
+
+/* ---------- 入口切換 ---------- */
+.roles { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); background: var(--panel); border-bottom: 1px solid var(--line2); }
+.role {
+  display: flex; align-items: center; gap: 10px; text-align: left; padding: 10px 18px; border: 0; border-right: 1px solid var(--line);
+  background: transparent; cursor: pointer; min-height: 58px; color: var(--ink); min-width: 0;
+}
+.role:last-child { border-right: 0; }
+.role:hover { background: var(--b50); }
+.role .t { display: block; font-weight: 700; font-size: 15px; line-height: 1.25; }
+.role .r { display: block; font-size: 12px; color: var(--mute); line-height: 1.3; }
+.role .cnt { margin-left: auto; font-size: 12px; color: var(--b800); border: 1px solid var(--b300); padding: 0 7px; min-width: 24px; text-align: center; background: var(--b50); font-weight: 700; }
+.role .cnt:empty { display: none; }
+.role[aria-current="page"] { background: var(--b100); box-shadow: inset 0 -4px 0 var(--o500); }
+.role[aria-current="page"] .t { color: var(--b900); }
+.role .ico { flex: none; width: 8px; height: 26px; background: var(--b300); }
+.role.r-line .ico { background: var(--line-g); }
+.role[aria-current="page"] .ico { background: var(--b700); }
+.role.r-line[aria-current="page"] .ico { background: var(--line-g-d); }
+.guide { display: flex; gap: 6px 10px; align-items: baseline; flex-wrap: wrap; padding: 8px 24px; font-size: 13px; background: #F6F8FA; border-bottom: 1px solid var(--line); }
+.guide b { color: var(--b900); }
+.clockbox { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+
+/* ---------- 端的版面 ---------- */
+.end-line { display: grid; grid-template-columns: minmax(0, 400px) minmax(0, 1fr); gap: 28px; align-items: start; max-width: 1100px; margin: 0 auto; }
+.sim { background: var(--sim-bg); border: 1.5px dashed var(--sim-line); }
+.sim > .ptitle { background: transparent; border-bottom: 1px dashed var(--sim-line); }
+.sim .pb { padding: 14px 16px; }
+.banner { padding: 10px 14px; border: 1.5px solid; font-size: 13.5px; }
+.banner.err { border-color: var(--low); background: var(--low-bg); color: #7A1810; }
+.banner.warn { border-color: var(--o700); background: var(--o100); color: #5A3500; border-style: dashed; }
+.banner.info { border-color: var(--ai-line); background: var(--ai-bg); color: #0E2C4A; }
+
+/* ---------- 手機外框與 LINE 聊天（模擬） ---------- */
+.phone {
+  position: relative; width: 100%; max-width: 390px; height: 720px; margin: 0 auto;
+  border: 10px solid #1E2731; border-radius: 30px; background: var(--line-chat);
+  display: flex; flex-direction: column; overflow: hidden;
+}
+.ph-top { display: flex; align-items: center; gap: 8px; padding: 10px 14px; background: #fff; border-bottom: 1px solid var(--line); flex: none; min-width: 0; }
+.ph-top b { font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ph-top .who { margin-left: auto; font-size: 12px; color: var(--mute); white-space: nowrap; }
+.ph-chat { flex: 1; overflow-y: auto; padding: 12px 10px 16px; display: flex; flex-direction: column; gap: 10px; }
+.msg { display: flex; gap: 6px; align-items: flex-end; max-width: 100%; }
+.msg.me { flex-direction: row-reverse; }
+.msg .av { flex: none; width: 30px; height: 30px; border-radius: 50%; background: var(--line-g); color: #fff; font-size: 11px; font-weight: 700; display: grid; place-items: center; align-self: flex-start; }
+.msg .tm { font-size: 10.5px; color: #3C4B5B; white-space: nowrap; }
+.bub { background: #fff; padding: 8px 11px; border-radius: 14px; max-width: 78%; font-size: 13.5px; line-height: 1.55; word-break: break-word; min-width: 0; }
+.msg.me .bub { background: var(--line-me); color: var(--line-me-ink); }
+.bub .fw { display: block; font-size: 11px; opacity: .8; margin-bottom: 2px; }
+.bub.failed { outline: 2px solid var(--low); }
+.bub .fail { display: block; font-size: 11.5px; color: var(--low); font-weight: 700; margin-top: 4px; }
+.sysmsg { align-self: center; max-width: 92%; font-size: 12px; background: #fff; border: 1.5px solid var(--low); color: #7A1810; padding: 8px 10px; border-radius: 6px; }
+.fx { background: #fff; border-radius: 14px; overflow: hidden; width: 82%; max-width: 290px; font-size: 13px; min-width: 0; }
+.fx-h { padding: 9px 12px; font-weight: 700; background: var(--b700); color: #fff; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.fx-h.g { background: var(--line-g-d); }
+.fx-h.o { background: var(--o600); color: #2E1A00; }
+.fx-h.r { background: var(--low); }
+.fx-b { padding: 9px 12px; }
+.fx-b dl { margin: 0; display: grid; grid-template-columns: 4.6em minmax(0, 1fr); gap: 2px 8px; }
+.fx-b dt { color: var(--mute); }
+.fx-b dd { margin: 0; min-width: 0; }
+.fx-b .q { font-family: var(--mono); font-size: 12.5px; background: #F4F6F8; border-left: 3px solid var(--ink); padding: 4px 8px; margin-bottom: 6px; }
+.fx-b p + p { margin-top: 4px; }
+.fx-f { border-top: 1px solid var(--line); }
+.fx-btn { display: block; width: 100%; border: 0; background: transparent; color: var(--line-g-t); font-weight: 700; padding: 9px 12px; cursor: pointer; font-size: 13.5px; }
+.fx-btn:hover { background: var(--line-g-bg); }
+.ph-foot { flex: none; background: #fff; border-top: 1px solid var(--line); padding: 9px 12px; font-size: 12px; color: var(--mute); text-align: center; }
+.ph-menu { flex: none; display: grid; grid-template-columns: 1fr 1fr; border-top: 1px solid var(--line); background: #fff; }
+.ph-menu button { border: 0; border-right: 1px solid var(--line); background: #fff; padding: 12px 8px; font-weight: 700; color: var(--line-g-t); cursor: pointer; font-size: 13px; }
+.ph-menu button:last-child { border-right: 0; }
+.ph-menu button:hover { background: var(--line-g-bg); }
+.ph-menu .lbl { grid-column: 1 / -1; font-size: 11px; color: var(--mute); text-align: center; padding: 2px; border-bottom: 1px solid var(--line); }
+.ph-empty { margin: auto; text-align: center; color: #2D3B4A; font-size: 13px; max-width: 260px; }
+
+/* ---------- LIFF 小頁（在手機裡疊上來） ---------- */
+.liff { position: absolute; inset: 36px 0 0; background: #fff; display: flex; flex-direction: column; border-top-left-radius: 14px; border-top-right-radius: 14px; box-shadow: 0 -2px 12px rgba(0, 0, 0, .25); }
+.liff-h { flex: none; display: flex; align-items: center; gap: 8px; padding: 8px 10px 8px 14px; border-bottom: 1px solid var(--line); background: #F6F8FA; border-top-left-radius: 14px; border-top-right-radius: 14px; flex-wrap: wrap; }
+.liff-h b { font-size: 14px; }
+.liff-h .x { margin-left: auto; }
+.liff-b { flex: 1; overflow-y: auto; padding: 12px 14px 20px; display: flex; flex-direction: column; gap: 12px; }
+.liff-b pre.raw { font-size: 13.5px; padding: 10px 12px; }
+.liff-b .kv { grid-template-columns: 6.2em minmax(0, 1fr); font-size: 12.5px; }
+.liff-act { flex: none; border-top: 1px solid var(--line2); padding: 10px 14px; background: #fff; display: flex; flex-direction: column; gap: 6px; }
+.liff-act .btn.primary { width: 100%; min-height: 44px; }
+.liff-act .row .btn { flex: 1; }
+.lf { border: 1px solid var(--line); }
+.lf-row { display: grid; grid-template-columns: 5.6em minmax(0, 1fr) auto; gap: 2px 8px; padding: 8px 10px; border-bottom: 1px solid var(--line); align-items: baseline; }
+.lf-row:last-child { border-bottom: 0; }
+.lf-k { font-weight: 700; font-size: 13px; }
+.lf-v { min-width: 0; }
+.lf-v .val { display: inline-block; padding: 0 6px; background: var(--ai-bg); border: 1px solid var(--ai-line); font-weight: 700; color: var(--ai-ink); }
+.lf-row.done .lf-v .val { background: var(--human); border-color: var(--human); color: #fff; }
+.lf-row.low { background: var(--low-bg); }
+.lf-row.low .lf-v .val { border: 1.5px dashed var(--low); background: #fff; color: var(--low); }
+.lf-n { grid-column: 2 / -1; font-size: 12px; color: var(--mute); }
+.lf-row select, .lf-row input { min-height: 32px; padding: 3px 8px; }
+.fuq { background: var(--ai-bg); border: 1px solid var(--ai-line); border-left: 4px solid var(--ai); padding: 10px 12px; }
+.fuq h4 { font-size: 13.5px; margin-bottom: 6px; display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+.fuq ol { margin: 0; padding-left: 1.3em; }
+.fuq li + li { margin-top: 10px; }
+.fuq .in { display: flex; gap: 6px; margin-top: 6px; }
+.fuq .in input { flex: 1; min-width: 0; }
+.fuq .why { display: block; margin-top: 4px; }
+
+/* ---------- 進度條（三端看到同一個狀態） ---------- */
+.prog { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); list-style: none; margin: 0; padding: 0; }
+.prog li { position: relative; font-size: 11.5px; text-align: center; color: var(--mute); padding-top: 15px; line-height: 1.3; min-width: 0; }
+.prog li::before { content: ""; position: absolute; top: 4px; left: 0; right: 0; height: 3px; background: #D5DCE4; }
+.prog li::after { content: ""; position: absolute; top: 0; left: 50%; width: 11px; height: 11px; margin-left: -6px; border-radius: 50%; background: #fff; border: 2px solid #A3B0BE; box-sizing: border-box; }
+.prog li.done { color: var(--b900); font-weight: 700; }
+.prog li.done::before { background: var(--b700); }
+.prog li.done::after { background: var(--b700); border-color: var(--b700); }
+.prog li.cur { color: var(--o800); font-weight: 700; }
+.prog li.cur::after { border-color: var(--o700); background: var(--o300); }
+.prog-ret { font-size: 12px; color: var(--mute); }
+.fx .prog { margin-top: 8px; }
+.fx .prog li { font-size: 10px; }
+
+/* ---------- 生管 ---------- */
+.pl { display: grid; grid-template-columns: 300px minmax(0, 1fr) 360px; gap: 18px; align-items: start; }
+.pl-list .grp { padding: 6px 14px; font-size: 12px; font-weight: 700; color: var(--mute); background: #F6F8FA; border-bottom: 1px solid var(--line); }
+.pl-item { width: 100%; text-align: left; border: 0; border-bottom: 1px solid var(--line); background: #fff; padding: 10px 14px; cursor: pointer; display: grid; gap: 4px; color: var(--ink); }
+.pl-item:hover { background: var(--b50); }
+.pl-item[aria-current="true"] { background: var(--b100); box-shadow: inset 4px 0 0 var(--o500); }
+.pl-item .l1 { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+.pl-item .sum { font-size: 12.5px; color: var(--ai-ink); }
+.wait { font-size: 12px; color: var(--mute); margin-left: auto; white-space: nowrap; }
+.wait.l1 { color: var(--o800); font-weight: 700; }
+.wait.l2 { color: var(--low); font-weight: 700; }
+.concl { background: var(--ai-bg); border: 1px solid var(--ai-line); border-left: 4px solid var(--ai); padding: 12px 14px; font-size: 15px; font-weight: 700; color: var(--b900); }
+.concl .sub { font-weight: 400; display: block; margin-top: 4px; }
+.pl-detail > .pb > * + * { margin-top: 14px; }
+details.more { border: 1px solid var(--line2); background: #fff; }
+details.more > summary { cursor: pointer; padding: 10px 14px; font-weight: 700; color: var(--b700); font-size: 13.5px; }
+details.more > summary:hover { background: var(--b50); }
+details.more[open] > summary { border-bottom: 1px solid var(--line); }
+.dec-act { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+
+/* ---------- 後台 ---------- */
+.ad { display: grid; grid-template-columns: 200px minmax(0, 1fr); gap: 18px; align-items: start; }
+.ad-nav { display: flex; flex-direction: column; background: var(--panel); border: 1px solid var(--line2); }
+.ad-nav button { text-align: left; border: 0; border-bottom: 1px solid var(--line); background: #fff; padding: 10px 14px; cursor: pointer; font-weight: 500; color: var(--ink); }
+.ad-nav button:last-child { border-bottom: 0; }
+.ad-nav button:hover { background: var(--b50); }
+.ad-nav button[aria-current="page"] { background: var(--b100); font-weight: 700; color: var(--b900); box-shadow: inset 4px 0 0 var(--o500); }
+.tbl th, .tbl td { padding: 7px 10px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; font-size: 13px; }
+.tbl th { background: #EEF1F4; font-weight: 500; color: var(--mute); white-space: nowrap; }
+.tbl td.n { text-align: right; }
+.mono { font-family: var(--mono); font-size: 12.5px; }
+.code { font-family: var(--mono); font-weight: 700; letter-spacing: .08em; border: 1.5px dashed var(--b700); padding: 0 6px; background: #fff; white-space: nowrap; }
+.qr { width: 52px; height: 52px; display: block; border: 1px solid var(--line2); background: #fff; }
+.pv { font-size: 12.5px; margin: 0; padding-left: 1.2em; }
+.pv li + li { margin-top: 4px; }
+.kpis.k3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.kpis.k3 .kpi:nth-child(3) { border-right: 0; }
+
+/* ---------- 窄螢幕（v2） ---------- */
+@media (max-width: 1240px) {
+  .pl { grid-template-columns: 280px minmax(0, 1fr); }
+  .pl > .pl-side { grid-column: 1 / -1; }
+}
+@media (max-width: 900px) {
+  .end-line { grid-template-columns: minmax(0, 1fr); }
+  .pl { grid-template-columns: minmax(0, 1fr); }
+  .ad { grid-template-columns: minmax(0, 1fr); }
+  .ad-nav { flex-direction: row; flex-wrap: wrap; }
+  .ad-nav button { border-bottom: 0; border-right: 1px solid var(--line); flex: 1 1 auto; }
+  .kpis.k3 { grid-template-columns: minmax(0, 1fr); }
+  .kpis.k3 .kpi { border-right: 0; border-bottom: 1px solid var(--line); }
+}
+@media (max-width: 760px) {
+  .roles { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .role { border-bottom: 1px solid var(--line); padding: 8px 12px; min-height: 52px; }
+  .role:nth-child(2) { border-right: 0; }
+  .guide { padding: 8px 16px; }
+  .phone { height: 640px; border-width: 6px; border-radius: 22px; }
+  .prog li { font-size: 10.5px; }
+  .lf-row { grid-template-columns: 4.8em minmax(0, 1fr) auto; }
+  .top-r { width: 100%; }
+}
+
+/* ---------- 自動示範 ---------- */
+.top .btn.tour-go { background: var(--o500); border-color: var(--o500); color: var(--b900); box-shadow: none; white-space: nowrap; }
+.top .btn.tour-go:hover:not(:disabled) { background: #fff; border-color: #fff; color: var(--b900); }
+.tour-shield { position: fixed; inset: 0; z-index: 90; cursor: not-allowed; }
+.tour-ring {
+  position: fixed; z-index: 91; pointer-events: none; opacity: 0;
+  border: 3px solid var(--o500); border-radius: 6px;
+  box-shadow: 0 0 0 4px rgba(253, 177, 58, .28), 0 0 0 9999px rgba(0, 31, 58, .12);
+  transition: left .45s ease, top .45s ease, width .45s ease, height .45s ease, opacity .25s;
+}
+.tour-cur {
+  position: fixed; left: 0; top: 0; z-index: 93; width: 26px; height: 26px; pointer-events: none;
+  transition-property: transform, opacity; transition-timing-function: cubic-bezier(.3, .7, .2, 1);
+  filter: drop-shadow(0 2px 3px rgba(0, 0, 0, .35));
+}
+.tour-cur svg { width: 26px; height: 26px; display: block; transform-origin: 4px 2px; transition: transform .12s; }
+.tour-cur::after {
+  content: ""; position: absolute; left: -11px; top: -11px; width: 26px; height: 26px; border-radius: 50%;
+  border: 3px solid var(--o500); opacity: 0; transform: scale(.3);
+}
+.tour-cur.down svg { transform: scale(.82); }
+.tour-cur.down::after { animation: tour-tap .5s ease-out; }
+@keyframes tour-tap { 0% { opacity: 1; transform: scale(.3); } 100% { opacity: 0; transform: scale(1.8); } }
+.tour-card {
+  position: fixed; left: 50%; bottom: 16px; transform: translateX(-50%); z-index: 92;
+  width: min(560px, calc(100vw - 32px)); background: var(--b900); color: #fff;
+  border-left: 5px solid var(--o500); border-radius: 4px; box-shadow: 0 8px 28px rgba(0, 20, 40, .35);
+  padding: 12px 16px 12px; overflow: hidden;
+}
+.tour-bar { position: absolute; left: 0; right: 0; top: 0; height: 3px; background: rgba(255, 255, 255, .15); }
+.tour-bar i { display: block; height: 100%; width: 0; background: var(--o500); transition: width .6s ease; }
+.tour-ch { font-weight: 700; font-size: 14.5px; display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap; }
+.tour-ch .n { font-family: var(--mono); font-size: 12px; color: var(--o300); font-weight: 500; }
+.tour-tx { margin: 6px 0 10px; font-size: 14px; line-height: 1.6; color: #E4EDF6; min-height: 3.2em; }
+.tour-tx.in { animation: tour-in .35s ease; }
+@keyframes tour-in { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+.tour-card.paused .tour-tx { opacity: .6; }
+.tour-act { display: flex; gap: 8px; flex-wrap: wrap; }
+.tour-b { min-height: 34px; padding: 0 14px; border: 1.5px solid #7FA3C6; background: transparent; color: #fff; font-weight: 700; border-radius: 3px; cursor: pointer; font-family: inherit; font-size: 13px; }
+.tour-b:hover { background: #fff; color: var(--b900); border-color: #fff; }
+.tour-b:focus-visible { outline: 3px solid var(--o500); outline-offset: 2px; }
+.tour-b.end { margin-left: auto; }
+body.touring #toast { top: 16px; bottom: auto; z-index: 94; }
+body.touring main { padding-bottom: 180px; }
+@media (prefers-reduced-motion: reduce) {
+  .tour-ring, .tour-bar i { transition: none; }
+  .tour-tx.in, .tour-cur.down::after { animation: none; }
+}
+
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="brand"><b>昇嶺電子</b><span>單一插單入口 v2</span></div>
+  <div class="top-mid"><span class="tag demo">Demo</span><span class="tag sim">模擬</span><span>示意資料；沒有連 LINE、沒有連 ERP、沒有連模型</span></div>
+  <div class="top-r">
+    <span class="clockbox"><span class="clock" id="clock"></span>
+      <button type="button" class="btn ghost sm" data-act="clock" data-min="30">+30 分</button>
+      <button type="button" class="btn ghost sm" data-act="clock" data-min="120">+2 小時</button></span>
+    <button type="button" class="btn sm tour-go" data-act="tour">▶ 自動示範</button>
+    <button type="button" class="btn ghost sm" data-act="reset">重設 Demo</button>
+  </div>
+</header>
+<nav class="roles" id="roles" aria-label="切換入口（切換身分）"></nav>
+<div id="guide"></div>
+<div class="legend" aria-label="顏色說明">
+  <span class="lg-raw"><i></i>原文，不改</span>
+  <span class="lg-ai"><i></i>AI 產生，只給建議</span>
+  <span class="lg-human"><i></i>人確認或決定</span>
+  <span class="lg-guess"><i></i>【我猜的】，待確認</span>
+  <span class="lg-low"><i></i>低信心，要確認</span>
+</div>
+<main id="view"></main>
+<div id="toast" role="status" aria-live="polite"></div>
+<script>
+/* ===== engine.js ===== */
+/* 昇嶺電子 單一插單入口 — 固定程式引擎（解析規則、換線試算、排序、風險）
+   原則：相同輸入必得相同結果；不呼叫模型；每個數字附算式。 */
+(function (root) {
+  'use strict';
+
+  /* ---------- 日期工具（工作日：週一到週六，九月 26 個工作日） ---------- */
+  const WD = ['日', '一', '二', '三', '四', '五', '六'];
+  const pad = n => String(n).padStart(2, '0');
+  const parseD = s => { const [y, m, d] = s.split('-').map(Number); return new Date(y, m - 1, d, 12, 0, 0); };
+  const fmtD = dt => dt.getFullYear() + '-' + pad(dt.getMonth() + 1) + '-' + pad(dt.getDate());
+  const addDays = (s, n) => { const dt = parseD(s); dt.setDate(dt.getDate() + n); return fmtD(dt); };
+  const dow = s => parseD(s).getDay();
+  const md = s => { const dt = parseD(s); return (dt.getMonth() + 1) + '/' + dt.getDate(); };
+  const mdw = s => md(s) + '（週' + WD[dow(s)] + '）';
+  const hhmm = h => { const t = Math.round(h * 60); return pad(Math.floor(t / 60)) + ':' + pad(t % 60); };
+  const nextWork = s => { while (dow(s) === 0) s = addDays(s, 1); return s; };
+  const prevWork = s => { while (dow(s) === 0) s = addDays(s, -1); return s; };
+  function workdaysBetween(a, b) {
+    if (a === b) return 0;
+    const dir = a < b ? 1 : -1; let c = a, n = 0, guard = 0;
+    while (c !== b && guard++ < 800) { c = addDays(c, dir); if (dow(c) !== 0) n += dir; }
+    return n;
+  }
+  function addWork(s, n) {
+    let c = s; const step = n >= 0 ? 1 : -1; let k = Math.abs(n), guard = 0;
+    while (k > 0 && guard++ < 800) { c = addDays(c, step); if (dow(c) !== 0) k--; }
+    return c;
+  }
+  const hourOf = t => { const [h, m] = t.split(':').map(Number); return h + (m || 0) / 60; };
+
+  /* ---------- 預設參數 ---------- */
+  function defaults() {
+    return {
+      // 個案資料（唯讀）
+      data: {
+        rate: 150,                       // SMT 片／正常運轉小時（12 個月實測 149.9–150.1）
+        changeoverH: 0.90,               // 機台紀錄，每次換線平均小時
+        lines: 4,                        // 九月 4 條 SMT 線
+        poolHoursPerDay: (760 + 133) / 26, // 九月（正常運轉 760 h＋換線停機 133 h）÷ 26 個工作日，推算
+        penalty: { '乙': 0.02, '丙': 0.01, '甲': 0 }, // 個案合約：乙 2%／天、丙 1%／天、甲無
+        sched05: 0.5, actualPerLineDay: 1.28           // 現行排程固定抓 0.5；實際約 1.28 小時／線／天
+      },
+      // 【我猜的】
+      guess: {
+        wA: 1.25,            // 甲虛擬權重 %／天（1–1.5）
+        maxDelayA: 1,        // 甲最多延後（天）
+        slots: ['10:00', '15:00'], // 固定插單時段
+        merge: true,         // 同機種合併
+        freezeH: 48,         // 凍結小時
+        partExtra: 1,        // 換零件額外換線次數
+        nCand: 6,            // 比較幾個候選位置
+        dayStart: 8,         // 工作日開始時間
+        lossLow: 3000, lossMid: 10000 // 罰款損失 低／中 門檻（NT$）
+      },
+      prices: { A1: 38, B2: 52, C3: 31 },   // 示意單價 NT$／片
+      clock: { date: '2026-11-17', time: '10:30' }, // 示意時間
+      conf: { threshold: 0.70 }
+    };
+  }
+
+  /* ---------- 示意資料表 ---------- */
+  const TABLES = {
+    customers: { '甲': ['客戶甲', '甲客戶', '甲'], '乙': ['客戶乙', '乙客戶', '乙'], '丙': ['客戶丙', '丙客戶', '丙'] },
+    models: ['A1', 'B2', 'C3']
+  };
+
+  /* ---------- 現行排程（示意） ---------- */
+  function seedQueue() {
+    return [
+      { id: 'Q-01', customer: '乙', model: 'B2', qty: 3300, due: '2026-11-17', running: true },
+      { id: 'Q-02', customer: '甲', model: 'A1', qty: 3000, due: '2026-11-18' },
+      { id: 'Q-03', customer: '丙', model: 'C3', qty: 1800, due: '2026-11-18' },
+      { id: 'Q-04', customer: '乙', model: 'B2', qty: 2400, due: '2026-11-19' },
+      { id: 'Q-05', customer: '丙', model: 'C3', qty: 2400, due: '2026-11-19' },
+      { id: 'Q-06', customer: '甲', model: 'A1', qty: 3000, due: '2026-11-20' },
+      { id: 'Q-07', customer: '乙', model: 'B2', qty: 1200, due: '2026-11-20' }
+    ];
+  }
+
+  /* ---------- 時間軸：把「合計運轉小時」對到日期與鐘點 ---------- */
+  function makeCal(asOfDate, P) {
+    const Hday = P.data.poolHoursPerDay, L = Hday / P.data.lines, ds = P.guess.dayStart;
+    const base = nextWork(asOfDate);
+    const cal = {
+      base, Hday, L, ds,
+      pos(date, hour) {
+        const d = dow(date) === 0 ? prevWork(date) : date;
+        const idx = workdaysBetween(base, d);
+        const frac = Math.min(1, Math.max(0, (hour - ds) / L));
+        return idx * Hday + frac * Hday;
+      },
+      dueEnd(date) { return cal.pos(date, ds + L); },
+      at(p) {
+        const idx = Math.floor(p / Hday + 1e-9);
+        const frac = Math.min(1, Math.max(0, (p - idx * Hday) / Hday));
+        const date = addWork(base, idx), hour = ds + frac * L;
+        return { date, hour, label: md(date) + ' ' + hhmm(hour) };
+      },
+      atEnd(p) { return cal.at(p - 1e-7); },
+      slotHours() { return P.guess.slots.map(hourOf).sort((a, b) => a - b); }
+    };
+    return cal;
+  }
+
+  /* ---------- 排程計算 ---------- */
+  function weightOf(job, P) {
+    const rate = job.customer === '甲' ? P.guess.wA / 100 : (P.data.penalty[job.customer] || 0);
+    return { rate, perDay: job.qty * (P.prices[job.model] || 0) * rate };
+  }
+
+  function runSeq(seq, p0, P, cal) {
+    let p = p0, prev = null; const out = [];
+    seq.forEach((j, i) => {
+      let c = 0;
+      if (i > 0) c = (P.guess.merge ? (prev.model !== j.model ? 1 : 0) : 1) + (j.partChange ? P.guess.partExtra : 0);
+      if (j.notBefore != null && p < j.notBefore) p = j.notBefore;
+      const run = j.qty / P.data.rate, co = c * P.data.changeoverH;
+      const start = p, end = p + run + co;
+      const w = weightOf(j, P), amount = j.qty * (P.prices[j.model] || 0);
+      const dueEnd = cal.dueEnd(j.due);
+      const late = Math.max(0, Math.ceil((end - dueEnd) / cal.Hday - 1e-9));
+      out.push({ job: j, start, end, run, co, c, amount, rate: w.rate, perDay: w.perDay, dueEnd, late, loss: w.perDay * late });
+      p = end; prev = j;
+    });
+    return out;
+  }
+  const totalLoss = rows => rows.reduce((a, r) => a + r.loss, 0);
+  const totalC = rows => rows.reduce((a, r) => a + r.c, 0);
+
+  function fnv(str) {
+    let h = 0x811c9dc5;
+    for (let i = 0; i < str.length; i++) { h ^= str.charCodeAt(i); h = (h * 0x01000193) >>> 0; }
+    return h.toString(16).padStart(8, '0');
+  }
+
+  /* ---------- 試算：找最佳插單位置 ---------- */
+  function calc(queue, X, P, asOf) {
+    const cal = makeCal(asOf.date, P);
+    const asOfDate = dow(asOf.date) === 0 ? nextWork(asOf.date) : asOf.date;
+    const asOfHour = dow(asOf.date) === 0 ? P.guess.dayStart : asOf.hour;
+    const p0 = cal.pos(asOfDate, asOfHour);
+    const base = runSeq(queue, p0, P, cal);
+    const baseLoss = totalLoss(base), baseC = totalC(base);
+
+    // 排入時段：asOf 之後最近的固定時段
+    const sh = cal.slotHours();
+    let entryDate = asOfDate, entryHour = null;
+    for (const h of sh) if (h >= asOfHour - 1e-9) { entryHour = h; break; }
+    if (entryHour == null) { entryDate = addWork(asOfDate, 1); entryHour = sh[0]; }
+    const entryPos = cal.pos(entryDate, entryHour);
+    const entry = { date: entryDate, hour: entryHour, pos: entryPos,
+      label: (entryDate === asOfDate ? '今天 ' : md(entryDate) + ' ') + hhmm(entryHour) };
+
+    // 凍結：asOf + freezeH 之前開工的單不重排
+    const fd = Math.floor(P.guess.freezeH / 24), fr = P.guess.freezeH % 24;
+    let fHour = asOfHour + fr, fDate = addDays(asOfDate, fd);
+    if (fHour >= 24) { fHour -= 24; fDate = addDays(fDate, 1); }
+    const frozenUntil = cal.pos(fDate, Math.min(fHour, P.guess.dayStart + cal.L));
+    const frozen = new Set(base.filter(r => r.start < frozenUntil - 1e-9).map(r => r.job.id));
+
+    const Xjob = Object.assign({}, X, { inserted: true });
+    const cands = [];
+    const eligible = [];
+    for (let k = 1; k <= queue.length; k++) {
+      const start = base[k - 1].end;
+      if (start >= entryPos - 1e-9) eligible.push(k);
+    }
+    if (!eligible.length) eligible.push(queue.length);
+
+    eligible.slice(0, P.guess.nCand).forEach(k => {
+      const mk = jobs => runSeq(jobs, p0, P, cal);
+      const xj = Object.assign({}, Xjob, { notBefore: entryPos });
+      const seqA = [...queue.slice(0, k), xj, ...queue.slice(k)];
+      const rowsA = mk(seqA);
+      let rows = rowsA, resorted = false;
+      const after = seqA.slice(k + 1);
+      const frozenPart = after.filter(j => frozen.has(j.id));
+      const freeTail = after.filter(j => !frozen.has(j.id));
+      if (freeTail.length > 1) {
+        const lateIn = new Set(rowsA.filter(r => r.late > 0).map(r => r.job.id));
+        const idx = new Map(freeTail.map((j, i) => [j.id, i]));
+        const sorted = [...freeTail].sort((a, b) => {
+          const la = lateIn.has(a.id) ? 1 : 0, lb = lateIn.has(b.id) ? 1 : 0;
+          if (la !== lb) return lb - la;
+          const wa = weightOf(a, P).perDay, wb = weightOf(b, P).perDay;
+          if (Math.abs(wa - wb) > 1e-9) return wb - wa;
+          return idx.get(a.id) - idx.get(b.id);
+        });
+        const changed = sorted.some((j, i) => j.id !== freeTail[i].id);
+        if (changed) {
+          const seqB = [...seqA.slice(0, k + 1), ...frozenPart, ...sorted];
+          const rowsB = mk(seqB);
+          if (totalLoss(rowsB) < totalLoss(rowsA) - 1) { rows = rowsB; resorted = true; }
+        }
+      }
+      const xr = rows.find(r => r.job.id === X.id);
+      const xi = rows.indexOf(xr);
+      const prevJob = xi > 0 ? rows[xi - 1].job : null;
+      const nextRow = rows[xi + 1] || null;
+      const baseNext = nextRow ? base.find(r => r.job.id === nextRow.job.id) : null;
+      const newLate = rows.filter(r => r.job.id !== X.id && r.late > 0 &&
+        !(base.find(b => b.job.id === r.job.id && b.late >= r.late)))
+        .map(r => ({ id: r.job.id, customer: r.job.customer, model: r.job.model, qty: r.job.qty,
+          late: r.late, loss: r.loss - ((base.find(b => b.job.id === r.job.id) || {}).loss || 0) }));
+      const aLate = rows.filter(r => r.job.customer === '甲' && r.late > P.guess.maxDelayA)
+        .map(r => ({ id: r.job.id, late: r.late }));
+      const tl = totalLoss(rows);
+      const extraC = totalC(rows) - baseC;
+      const sameModelAdj = !!(prevJob && prevJob.model === X.model) || !!(nextRow && nextRow.job.model === X.model);
+      cands.push({
+        k, afterId: queue[k - 1].id, after: queue[k - 1],
+        x: xr, start: xr.start, end: xr.end,
+        startAt: cal.at(xr.start), endAt: cal.atEnd(xr.end),
+        lateX: xr.late, lossX: xr.loss, totalLoss: tl, deltaLoss: tl - baseLoss,
+        newLate, aLate, extraC, extraH: extraC * P.data.changeoverH,
+        cX: xr.c, cNextOld: baseNext ? baseNext.c : 0, cNextNew: nextRow ? nextRow.c : 0,
+        sameModelAdj, resorted, rows,
+        seqJobs: rows.map(r => r.job)
+      });
+    });
+
+    let best = 0;
+    cands.forEach((c, i) => {
+      const b = cands[best];
+      if (c.totalLoss < b.totalLoss - 1e-6 ||
+        (Math.abs(c.totalLoss - b.totalLoss) <= 1e-6 && (c.extraC < b.extraC ||
+          (c.extraC === b.extraC && c.start < b.start)))) best = i;
+    });
+
+    const fingerprint = fnv(JSON.stringify({ queue: queue.map(q => [q.id, q.customer, q.model, q.qty, q.due, q.partChange || 0]),
+      X: [X.customer, X.model, X.qty, X.due, X.partChange || 0], P: { g: P.guess, d: P.data, p: P.prices }, asOf: [asOfDate, asOfHour] }));
+
+    return { cal, asOf: { date: asOfDate, hour: asOfHour, label: md(asOfDate) + ' ' + hhmm(asOfHour) },
+      p0, base, baseLoss, baseC, entry, frozenUntil, frozenIds: [...frozen],
+      cands, best, fingerprint,
+      xRunH: X.qty / P.data.rate };
+  }
+
+  /* ---------- 風險與等級 ---------- */
+  function risk(c, cal, P) {
+    const dueEnd = c.x.dueEnd;
+    const slackDays = (dueEnd - c.end) / cal.Hday;
+    let level = 0; const why = [];
+    if (c.lateX > 0) { level = 2; why.push('本單預計晚 ' + c.lateX + ' 天'); }
+    else if (slackDays < 0.5) { level = 1; why.push('餘裕只有 ' + slackDays.toFixed(1) + ' 天'); }
+    else why.push('餘裕 ' + slackDays.toFixed(1) + ' 天');
+    if (c.newLate.length) { level = Math.max(level, 1); why.push('連帶 ' + c.newLate.length + ' 張變遲'); }
+    if (c.aLate.length) { level = 2; why.push('甲超過延後上限 ' + P.guess.maxDelayA + ' 天'); }
+    return { level, label: ['低', '中', '高'][level], slackDays, why };
+  }
+  function lossLevel(delta, P) {
+    if (delta <= 0.5) return { level: 0, label: '無' };
+    if (delta <= P.guess.lossLow) return { level: 1, label: '低' };
+    if (delta <= P.guess.lossMid) return { level: 2, label: '中' };
+    return { level: 3, label: '高' };
+  }
+
+  /* ---------- 規則解析 ---------- */
+  const zhDigit = { '零': 0, '〇': 0, '一': 1, '二': 2, '兩': 2, '三': 3, '四': 4, '五': 5, '六': 6, '七': 7, '八': 8, '九': 9 };
+  const zhUnit = { '十': 10, '百': 100, '千': 1000 };
+  function zhNum(s) {
+    let total = 0, cur = 0, last = 0;
+    for (const ch of s) {
+      if (ch in zhDigit) cur = zhDigit[ch];
+      else if (ch in zhUnit) { total += (cur || 1) * zhUnit[ch]; cur = 0; last = zhUnit[ch]; }
+    }
+    if (cur) total += last >= 100 ? cur * last / 10 : cur;
+    return total;
+  }
+  const wkMap = { '一': 1, '二': 2, '三': 3, '四': 4, '五': 5, '六': 6, '日': 0, '天': 0 };
+
+  function ruleParse(text, ctx) {
+    const P = ctx.P, today = ctx.today;
+    const F = {};
+    const none = note => ({ value: null, conf: 0, span: null, note, src: 'rule' });
+
+    // 客戶
+    F.customer = none('原文找不到客戶');
+    let best = null;
+    for (const [name, aliases] of Object.entries(TABLES.customers)) {
+      for (const a of aliases) {
+        const i = text.indexOf(a);
+        if (i >= 0 && (!best || i < best.i)) best = { name, i, len: a.length };
+      }
+    }
+    if (best) F.customer = { value: best.name, conf: 0.95, span: [best.i, best.i + best.len], note: '對照客戶別名表', src: 'rule' };
+
+    // 機種
+    F.model = none('原文找不到機種代碼');
+    const mre = /([A-Za-z])\s?-?\s?(\d{1,3})(?![\d])/g; let m, firstTok = null;
+    while ((m = mre.exec(text))) {
+      const code = (m[1] + m[2]).toUpperCase();
+      if (TABLES.models.includes(code)) { F.model = { value: code, conf: 0.95, span: [m.index, m.index + m[0].length], note: '對照機種表', src: 'rule' }; firstTok = null; break; }
+      if (!firstTok) firstTok = { code, i: m.index, len: m[0].length };
+    }
+    if (F.model.value == null && firstTok) F.model = { value: firstTok.code, conf: 0.5, span: [firstTok.i, firstTok.i + firstTok.len], note: '機種不在對照表', src: 'rule' };
+
+    // 數量
+    F.qty = none('原文沒有數量');
+    const q1 = /(\d[\d,]{0,6})\s*(片|PCS|pcs|Pcs|pc|PC|個)/.exec(text);
+    const q2 = /([零〇一二兩三四五六七八九十百千]{1,8})\s*(片|個)/.exec(text);
+    if (q1) F.qty = { value: parseInt(q1[1].replace(/,/g, ''), 10), conf: 0.95, span: [q1.index, q1.index + q1[0].length], note: '數字加單位', src: 'rule' };
+    else if (q2 && zhNum(q2[1]) > 0) F.qty = { value: zhNum(q2[1]), conf: 0.85, span: [q2.index, q2.index + q2[0].length], note: '中文數字換算', src: 'rule' };
+
+    // 要求交期
+    F.due = none('原文沒有交期');
+    const dateRe = /(\d{1,2})\s*[\/月]\s*(\d{1,2})\s*[日號]?/.exec(text);
+    const wkRe = /(下|下個|這|本)?\s*(週|周|禮拜|星期)\s*([一二三四五六日天])/.exec(text);
+    const relRe = /(今天|今日|明天|明日|大後天|後天)/.exec(text);
+    const y = parseInt(today.slice(0, 4), 10);
+    if (dateRe) {
+      const mm = +dateRe[1], dd = +dateRe[2];
+      const ok = mm >= 1 && mm <= 12 && dd >= 1 && dd <= 31;
+      if (ok) F.due = { value: y + '-' + pad(mm) + '-' + pad(dd), conf: 0.95, span: [dateRe.index, dateRe.index + dateRe[0].length], note: '明確日期', src: 'rule' };
+    } else if (wkRe) {
+      const t = wkMap[wkRe[3]], pre = wkRe[1] || '';
+      const dt = dow(today), monday = addDays(today, -((dt + 6) % 7));
+      const thisW = addDays(monday, (t + 6) % 7), nextW = addDays(thisW, 7);
+      const thisOk = thisW > today;
+      if (pre.startsWith('下')) F.due = { value: nextW, conf: 0.85, span: [wkRe.index, wkRe.index + wkRe[0].length], note: '「下週」推算', src: 'rule' };
+      else if (pre === '這' || pre === '本') F.due = { value: thisOk ? thisW : nextW, conf: 0.9, span: [wkRe.index, wkRe.index + wkRe[0].length], note: '「本週」推算', src: 'rule' };
+      else {
+        const v = thisOk ? thisW : nextW, alt = thisOk ? nextW : addDays(nextW, 7);
+        F.due = { value: v, conf: 0.55, span: [wkRe.index, wkRe.index + wkRe[0].length], note: '只說星期幾，不知是這週或下週', src: 'rule',
+          alts: [{ value: v, label: mdw(v) + '（最近的一個）' }, { value: alt, label: mdw(alt) }] };
+      }
+    } else if (relRe) {
+      const k = { '今天': 0, '今日': 0, '明天': 1, '明日': 1, '後天': 2, '大後天': 3 }[relRe[1]];
+      F.due = { value: addDays(today, k), conf: 0.85, span: [relRe.index, relRe.index + relRe[0].length], note: '由「' + relRe[1] + '」推算', src: 'rule' };
+    } else if (/(盡快|越快越好|愈快愈好|急)/.test(text)) {
+      F.due = none('只說盡快，沒有日期');
+    }
+
+    // 是否換零件
+    F.partChange = none('原文沒提零件');
+    const neg = /(不(用)?(必)?換(零件|料)|零件(不變|沒變|不換|不改|同)|沒有?換(零件|料)|同(零件|料))/.exec(text);
+    const pos = /((換|改)(了)?(零件|料)|零件(有)?(換|改|變)|新版|改版)/.exec(text);
+    if (neg) F.partChange = { value: false, conf: 0.9, span: [neg.index, neg.index + neg[0].length], note: '原文說零件不變', src: 'rule' };
+    else if (pos) F.partChange = { value: true, conf: 0.9, span: [pos.index, pos.index + pos[0].length], note: '原文說要換零件', src: 'rule' };
+
+    // 是否追加單
+    const add = /(追加|加單|插單|急單|加急|插一張|加一張|再加|加\s*\d)/.exec(text);
+    F.isAdd = add ? { value: true, conf: 0.9, span: [add.index, add.index + add[0].length], note: '原文有追加用語', src: 'rule' }
+      : { value: false, conf: 0.6, span: null, note: '原文沒提，暫當一般單', src: 'rule' };
+    return F;
+  }
+
+  /* ---------- 模型回傳的驗證：每個值都要在原文找得到出處 ---------- */
+  function validateModelOutput(text, obj, ctx) {
+    const out = {}; const issues = [];
+    if (!obj || typeof obj !== 'object') return { fields: null, issues: ['回傳不是物件'] };
+    const get = k => (obj[k] && typeof obj[k] === 'object') ? obj[k] : null;
+    const evSpan = ev => { if (!ev || typeof ev !== 'string') return null; const i = text.indexOf(ev); return i >= 0 ? [i, i + ev.length] : null; };
+    const C = x => { const n = Number(x); return isFinite(n) ? Math.max(0, Math.min(1, n)) : 0.5; };
+    const one = (k, norm) => {
+      const o = get(k);
+      if (!o || o.value == null || o.value === '') { out[k] = { value: null, conf: 0, span: null, note: '模型沒找到', src: 'llm' }; return; }
+      const v = norm(o.value);
+      const span = evSpan(o.evidence);
+      if (v == null) { out[k] = { value: null, conf: 0, span: null, note: '模型值無法使用', src: 'llm' }; issues.push(k + ' 值無效'); return; }
+      if (!span && k !== 'isAdd' && k !== 'partChange') { out[k] = { value: null, conf: 0, span: null, note: '模型值在原文找不到出處，已丟棄', src: 'llm' }; issues.push(k + ' 無出處'); return; }
+      let conf = C(o.confidence); if (!span) conf = Math.min(conf, 0.6);
+      out[k] = { value: v, conf, span, note: (o.note && String(o.note).slice(0, 40)) || '模型解析', src: 'llm' };
+      if (Array.isArray(o.alternatives)) {
+        const alts = o.alternatives.map(a => norm(a)).filter(Boolean);
+        if (alts.length) out[k].alts = alts.map(a => ({ value: a, label: k === 'due' ? mdw(a) : String(a) }));
+      }
+    };
+    one('customer', v => Object.keys(TABLES.customers).includes(String(v)) ? String(v) : null);
+    one('model', v => { const s = String(v).toUpperCase().replace(/[\s-]/g, ''); return /^[A-Z]\d{1,3}$/.test(s) ? s : null; });
+    one('qty', v => { const n = Math.round(Number(String(v).replace(/,/g, ''))); return n > 0 && n < 1000000 ? n : null; });
+    one('due', v => /^\d{4}-\d{2}-\d{2}$/.test(String(v)) && !isNaN(parseD(String(v))) ? String(v) : null);
+    one('partChange', v => (v === true || v === 'true' || v === '是' || v === '要') ? true : (v === false || v === 'false' || v === '否' || v === '不') ? false : null);
+    one('isAdd', v => (v === true || v === 'true' || v === '是') ? true : (v === false || v === 'false' || v === '否') ? false : null);
+    if (out.model && out.model.value && !TABLES.models.includes(out.model.value)) { out.model.conf = Math.min(out.model.conf, 0.5); out.model.note = '機種不在對照表'; }
+    return { fields: out, issues };
+  }
+
+  /* 規則與模型合併：不一致就降信心，讓業務看到 */
+  function mergeParse(rule, llm) {
+    const out = {};
+    for (const k of Object.keys(rule)) {
+      const r = rule[k], l = llm && llm[k];
+      if (!l || l.value == null) { out[k] = Object.assign({}, r, { src: r.value == null ? 'none' : 'rule' }); continue; }
+      if (r.value == null) { out[k] = l; continue; }
+      if (String(r.value) === String(l.value)) {
+        const amb = r.alts && r.alts.length > 1 && r.conf < 0.7; // 規則判定有歧義（如只說「週四」）時，模型不能把信心拉高
+        out[k] = Object.assign({}, l, { conf: amb ? r.conf : (Math.max(l.conf, r.conf) >= 0.95 ? 0.97 : Math.max(l.conf, r.conf)), note: amb ? r.note : '模型與規則一致', alts: amb ? r.alts : (l.alts || r.alts), span: l.span || r.span });
+        continue;
+      }
+      out[k] = Object.assign({}, l, { conf: Math.min(l.conf, r.conf, 0.6), note: '模型與規則不一致（規則：' + r.value + '）', alts: [{ value: r.value, label: String(r.value) + '（規則）' }, { value: l.value, label: String(l.value) + '（模型）' }] });
+    }
+    return out;
+  }
+
+  const FIELD_ORDER = ['customer', 'model', 'qty', 'due', 'partChange', 'isAdd'];
+  const FIELD_LABEL = { customer: '客戶', model: '機種', qty: '數量', due: '要求交期', partChange: '是否換零件', isAdd: '是否追加單' };
+
+  /* ---------- 回覆草稿（固定範本；模型只可改措辭） ---------- */
+  function replyDraft(order, dueDate, requested) {
+    const f = order.fields; const q = f.qty.value.toLocaleString('en-US');
+    const head = '您好，' + f.model.value + ' ' + q + ' 片';
+    if (dueDate <= requested) return head + '，預計 ' + mdw(dueDate) + ' 可出貨，符合您要求的 ' + mdw(requested) + '。如有變動我們會先通知您。';
+    return head + '，目前排程最快 ' + mdw(dueDate) + ' 出貨，趕不上您要求的 ' + mdw(requested) + '。若要更早，我們需要再與生管確認，確認後回覆您。';
+  }
+
+  const api = { defaults, TABLES, seedQueue, makeCal, runSeq, calc, risk, lossLevel, ruleParse, validateModelOutput, mergeParse,
+    replyDraft, weightOf, FIELD_ORDER, FIELD_LABEL, util: { pad, parseD, fmtD, addDays, dow, md, mdw, hhmm, nextWork, addWork, workdaysBetween, hourOf, fnv, WD } };
+  if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.Engine = api;
+})(typeof window !== 'undefined' ? window : globalThis);
+
+
+/* ===== store.js ===== */
+/* 昇嶺電子 單一插單入口 Demo v2 — 資料層（記憶體版）
+   對應正式版的資料表：人員、原單、AI 解析、業務確認、試算、生管決定、通知、回覆客戶、實際結果、參數版本、稽核紀錄。
+   原則：
+   - 原文建立後凍結，永不修改。
+   - 稽核紀錄只能追加，每筆凍結，沒有修改或刪除的函式。
+   - 試算只用 engine.js（固定程式），不用 LLM。
+   - 沒有試算紀錄，不產生交期草稿、不能複製回覆。
+   - 這一層不碰畫面，Node 可直接 require 來測試。 */
+(function (root) {
+  'use strict';
+  const E = root.Engine || (typeof require !== 'undefined' ? require('./engine.js') : null);
+  const U = E.util;
+
+  /* ---------- 常數 ---------- */
+  const SAMPLES = [
+    { key: 'full', label: '完整', from: '客戶甲', text: '甲客戶追加 A1 800片，11/20 要出貨，零件有換。', hint: '五個欄位原文都有' },
+    { key: 'noqty', label: '缺數量', from: '客戶乙', text: '乙那邊要插一張 B2，11/20 要，零件不變', hint: '沒寫數量，業務要回答追問' },
+    { key: 'vague', label: '交期模糊', from: '客戶丙', text: '丙的 C3 加 600片，週四要，零件不變', hint: '「週四」是這週還是下週，要業務選' }
+  ];
+  const ROLE = { boss: '老闆', sales: '業務', planner: '生管', lead: '生管主管', admin: '管理者' };
+  const STATUS = { received: '待業務確認', queued: '待生管決定', decided: '生管已決定', replied: '已回覆客戶', done: '已回填結果', returned: '已退回' };
+  const STAGES = ['已收單', '已確認', '試算', '生管決定', '已回覆', '已回填'];
+  const SRC = { LINE: 'LINE 轉傳', WEB: '網頁備援', '電話': '電話', '口頭': '口頭' };
+  const REQ = ['customer', 'model', 'qty', 'due', 'partChange'];
+  // 【我猜的】逾時時長：資料沒有，放在後台參數
+  const OPS_DEFAULT = { salesRemindMin: 30, plannerRemindMin: 120, plannerEscalateMin: 240 };
+  // 解析模式：Demo 沒有連模型。rule＝規則解析；sim-fail／sim-timeout＝示範模型失敗或逾時後退回規則
+  const AI_DEFAULT = { mode: 'rule', timeoutMs: 8000 };
+
+  /* 單價：個案只給「平均每片售價約 1,200 元」，各機種單價未提供。
+     engine.js 必須與 v1 一字不差，所以在這裡覆寫，不改引擎。 */
+  const CASE_PRICE = 1200;
+  function caseDefaults() {
+    const d = E.defaults();
+    E.TABLES.models.forEach(m => { d.prices[m] = CASE_PRICE; });
+    return d;
+  }
+
+  const pad4 = n => String(n).padStart(4, '0');
+  const clone = o => JSON.parse(JSON.stringify(o));
+  const sleep = ms => new Promise(r => setTimeout(r, ms));
+  const fmtN = n => Number(n).toLocaleString('en-US');
+
+  function seedPeople() {
+    return [
+      { id: 'P-01', name: '老闆', role: 'boss', status: 'bound', lineUserId: 'U-模擬-boss01', boundAt: '11/10 09:00', code: null },
+      { id: 'P-02', name: '業務 A', role: 'sales', status: 'bound', lineUserId: 'U-模擬-sales02', boundAt: '11/10 09:20', code: null },
+      { id: 'P-03', name: '業務 B', role: 'sales', status: 'unbound', lineUserId: null, boundAt: null, code: 'K7Q2-9F' },
+      { id: 'P-04', name: '生管 A', role: 'planner', status: 'web', lineUserId: null, boundAt: null, code: null },
+      { id: 'P-05', name: '生管主管', role: 'lead', status: 'bound', lineUserId: 'U-模擬-lead05', boundAt: '11/10 10:05', code: null },
+      { id: 'P-06', name: '管理者', role: 'admin', status: 'web', lineUserId: null, boundAt: null, code: null }
+    ];
+  }
+
+  /* ---------- 建立一份 Demo 資料 ---------- */
+  function create(opts) {
+    opts = opts || {};
+    const onChange = opts.onChange || (() => {});
+    const audit = [];            // 只能追加
+    const seenEvents = new Set();
+    const S = {
+      P: caseDefaults(), queue: E.seedQueue(), people: seedPeople(),
+      ops: Object.assign({}, OPS_DEFAULT), ai: Object.assign({}, AI_DEFAULT),
+      pending: { erp: '未定', stations: '', shifts: '' },
+      orders: [], events: [], notes: [], chats: {}, pver: [],
+      sim: { lineDown: false },
+      oseq: 0, tseq: 0, eseq: 0, nseq: 0, mseq: 0, tick: 0
+    };
+    S.pver.push(Object.freeze({ v: 1, at: stamp().label, by: '系統', changes: ['初始預設值'] }));
+
+    /* ===== 時間 ===== */
+    function stamp() {
+      const base = U.hourOf(S.P.clock.time) * 60 + S.tick;
+      const day = Math.floor(base / 1440), m = base % 1440;
+      const date = U.addDays(S.P.clock.date, day), hour = m / 60;
+      return { date, hour, abs: S.tick, label: U.md(date) + ' ' + U.hhmm(hour), hm: U.hhmm(hour) };
+    }
+    function advance(min) {
+      S.tick += min;
+      log('系統', 'system', '模擬時鐘', '', '時間前進 ' + min + ' 分鐘，現在 ' + stamp().label, false);
+      checkTimers();
+      onChange();
+    }
+
+    /* ===== 稽核（只能追加） ===== */
+    function log(who, role, action, order, detail, tick) {
+      if (tick !== false) S.tick++;
+      const st = stamp();
+      const e = Object.freeze({ seq: audit.length + 1, t: st.label, abs: S.tick, who, role, action, order: order || '', detail: detail || '' });
+      audit.push(e);
+      return st;
+    }
+    const auditList = () => audit.slice().reverse();
+
+    /* ===== 人員 ===== */
+    const person = id => S.people.find(p => p.id === id);
+    const byLine = uid => S.people.find(p => p.lineUserId && p.lineUserId === uid);
+    const boundSales = () => S.people.filter(p => p.role === 'sales' && p.status === 'bound');
+    function newCode(p) { return U.fnv(p.id + ':' + S.tick + ':' + audit.length).slice(0, 4).toUpperCase() + '-' + U.fnv(p.name + S.tick).slice(0, 2).toUpperCase(); }
+
+    function bind(pid, code) {
+      const p = person(pid);
+      if (!p || p.status !== 'unbound') return { ok: false, msg: '這個帳號不需要綁定' };
+      if (String(code || '').trim().toUpperCase() !== p.code) {
+        log('系統', 'system', '綁定失敗', '', p.name + '：綁定碼不符');
+        onChange();
+        return { ok: false, msg: '綁定碼不對。請向管理者確認，或請管理者重新產生。' };
+      }
+      p.status = 'bound'; p.lineUserId = 'U-模擬-' + U.fnv(p.id + 'line').slice(0, 6); p.code = null;
+      const st = log(p.name, p.role, '綁定 LINE', '', '以綁定碼完成；LINE 使用者 ID ' + p.lineUserId + '（模擬，由 LINE Login 取得）');
+      p.boundAt = st.label;
+      chat(p.id, { from: 'oa', kind: 'text', text: '綁定完成。你是「' + p.name + '」（' + ROLE[p.role] + '），之後的新單通知會傳到這裡。' }, 'reply');
+      onChange();
+      return { ok: true };
+    }
+    function unbind(pid, by) {
+      const p = person(pid);
+      if (!p || p.status !== 'bound') return { ok: false };
+      const old = p.lineUserId;
+      p.status = 'unbound'; p.lineUserId = null; p.boundAt = null; p.code = newCode(p);
+      log(by || '管理者', 'admin', '解除綁定', '', p.name + '（原 ' + old + '）；新綁定碼 ' + p.code);
+      onChange();
+      return { ok: true };
+    }
+    function regenCode(pid, by) {
+      const p = person(pid);
+      if (!p || p.status !== 'unbound') return;
+      p.code = newCode(p);
+      log(by || '管理者', 'admin', '產生綁定碼', '', p.name + '：' + p.code + '（一次性）');
+      onChange();
+    }
+
+    /* ===== LINE 聊天與通知（模擬） ===== */
+    function chat(pid, msg, cost) {
+      const st = stamp();
+      const m = Object.assign({ id: 'M' + (++S.mseq), at: st.hm, atLabel: st.label, cost: cost || 'none' }, msg);
+      (S.chats[pid] = S.chats[pid] || []).push(m);
+      return m;
+    }
+    // cost：reply＝回覆（不計則數）；push＝主動推播（計則數）
+    function notify(pid, msgType, order, calcRef, msg, cost) {
+      const p = person(pid);
+      const st = stamp();
+      const n = { id: 'N-' + pad4(++S.nseq), at: st.label, to: p ? p.name : pid, toId: pid, msgType, order: order || '', calc: calcRef || '', cost, status: 'sent' };
+      if (S.sim.lineDown) { n.status = 'failed'; n.pending = { pid, msg }; S.notes.push(n); return n; }
+      chat(pid, msg, cost);
+      S.notes.push(n);
+      return n;
+    }
+    function setLineDown(down, by) {
+      S.sim.lineDown = !!down;
+      log(by || '管理者', 'admin', down ? '模擬 LINE 斷線' : '模擬 LINE 恢復', '', down ? '官方帳號收不到訊息，推播會失敗' : '');
+      if (!down) {
+        const failed = S.notes.filter(n => n.status === 'failed');
+        failed.forEach(n => { n.status = 'resent'; chat(n.pending.pid, n.pending.msg, n.cost); delete n.pending; });
+        if (failed.length) log('系統', 'system', '補送推播', '', '連線恢復，補送 ' + failed.length + ' 則');
+      }
+      onChange();
+    }
+    const pushCount = () => S.notes.filter(n => n.cost === 'push' && n.status !== 'failed').length;
+    const replyCount = () => S.notes.filter(n => n.cost === 'reply').length;
+
+    /* ===== 解析 ===== */
+    async function parseText(text) {
+      const ctx = { P: S.P, today: stamp().date };
+      const rule = E.ruleParse(text, ctx);
+      const ms = S.ai.timeoutMs || 8000;
+      if (S.ai.mode === 'sim-fail') {
+        if (!opts.fast) await sleep(400);
+        return { fields: rule, engine: 'rule', fallback: true, status: '規則解析（模擬模型呼叫失敗，已退回規則）' };
+      }
+      if (S.ai.mode === 'sim-timeout') {
+        if (!opts.fast) await sleep(ms);
+        return { fields: rule, engine: 'rule', fallback: true, status: '規則解析（模擬模型超過 ' + ms / 1000 + ' 秒，已退回規則）' };
+      }
+      return { fields: rule, engine: 'rule', fallback: false, status: '規則解析（Demo 沒有連模型；正式版由後端呼叫 OpenAI，失敗或超過 ' + ms / 1000 + ' 秒退回規則）' };
+    }
+    const anyField = f => E.FIELD_ORDER.some(k => k !== 'isAdd' && f[k].value != null);
+
+    /* ===== 建單 ===== */
+    function createOrder(text, meta) {
+      const st = stamp();
+      const id = 'A-' + pad4(++S.oseq);
+      const sample = meta.sample && SAMPLES.find(s => s.key === meta.sample && s.text === text);
+      const o = {
+        id, status: 'received', sample: sample ? sample.label : null,
+        raw: Object.freeze({ text, source: meta.source, by: meta.by, byId: meta.byId || '', forwardedAt: meta.forwardedAt || st.label, receivedAt: st.label, receivedAbs: S.tick, eventId: meta.eventId || '' }),
+        parse: null, draft: null, confirm: null, calcs: [], decision: null, reply: null, actual: null,
+        t: { received: S.tick }, reminded: {}
+      };
+      S.orders.unshift(o);
+      log(meta.by, meta.role, '建單', id, '來源 ' + SRC[meta.source] + (meta.eventId ? '，事件 ' + meta.eventId : '') + '，原文 ' + text.length + ' 字（凍結，不可修改）', false);
+      return o;
+    }
+    async function runParse(o) {
+      const res = await parseText(o.raw.text);
+      o.parse = { engine: res.engine, fallback: res.fallback, status: res.status, fields: clone(res.fields), failed: !anyField(res.fields) };
+      o.draft = { fields: clone(res.fields) };
+      for (const k of E.FIELD_ORDER) o.draft.fields[k].confirmed = false;
+      log('AI', 'ai', '解析欄位', o.id, res.status + (o.parse.failed ? '；沒有拆出任何欄位，請業務在追問區補' : ''));
+      o.t.parsed = S.tick;
+      const low = pendingFields(o).length;
+      boundSales().forEach(p => notify(p.id, '新單待確認', o.id, '', { from: 'oa', kind: 'new', order: o.id, low }, 'push'));
+      onChange();
+      return o;
+    }
+
+    /* webhook：簽章驗證（模擬）→ 事件 ID 去重 → 身分 → 建單 */
+    async function webhook(ev) {
+      const st = stamp();
+      const rec = { eventId: ev.eventId, at: st.label, userId: ev.userId, text: ev.text, sig: ev.badSig ? '不符' : '通過（模擬）', result: '' };
+      S.events.unshift(rec);
+      if (ev.badSig) { rec.result = '簽章不符，拒絕（HTTP 401）'; log('系統', 'system', 'webhook 拒絕', '', '事件 ' + ev.eventId + ' 簽章不符'); onChange(); return { ok: false }; }
+      if (seenEvents.has(ev.eventId)) { rec.result = '重複事件，略過'; log('系統', 'system', 'webhook 重送', '', '事件 ' + ev.eventId + ' 已處理過，略過'); onChange(); return { ok: true, dup: true }; }
+      seenEvents.add(ev.eventId);
+      const p = byLine(ev.userId);
+      if (!p || p.status !== 'bound') {
+        rec.result = '未綁定，不處理，已回覆引導';
+        const who = S.people.find(x => x.id === ev.pid);
+        if (who) chat(who.id, { from: 'oa', kind: 'unbound' }, 'reply');
+        S.notes.push({ id: 'N-' + pad4(++S.nseq), at: st.label, to: '未綁定使用者', toId: ev.pid || '', msgType: '綁定引導', order: '', calc: '', cost: 'reply', status: 'sent' });
+        log('系統', 'system', '未綁定訊息', '', '使用者 ' + (ev.userId || '（無 ID）') + ' 未綁定，訊息不處理');
+        onChange();
+        return { ok: true, unbound: true };
+      }
+      if (p.role !== 'boss' && p.role !== 'sales') {
+        rec.result = '此角色不收單，已回覆說明';
+        chat(p.id, { from: 'oa', kind: 'text', text: '這個帳號不收單。新單請由老闆或業務轉傳。' }, 'reply');
+        onChange();
+        return { ok: true };
+      }
+      const o = createOrder(ev.text, { source: 'LINE', by: p.name, byId: p.id, role: p.role, eventId: ev.eventId, sample: ev.sample, forwardedAt: ev.forwardedAt });
+      rec.result = '建單 ' + o.id;
+      notify(p.id, '已收單', o.id, '', { from: 'oa', kind: 'ack', order: o.id }, 'reply');
+      onChange();
+      await runParse(o);
+      return { ok: true, order: o };
+    }
+
+    /* 老闆（或業務）在 LINE 轉傳一則訊息給官方帳號 */
+    async function forward(pid, text, sample) {
+      const p = person(pid);
+      const st = stamp();
+      const m = chat(pid, { from: 'me', kind: 'fwd', text, fwdFrom: sample ? (SAMPLES.find(s => s.key === sample) || {}).from : '' }, 'none');
+      if (S.sim.lineDown) {
+        m.failed = true;
+        chat(pid, { from: 'sys', kind: 'down' }, 'none');
+        log('系統', 'system', '訊息未送達', '', (p ? p.name : pid) + ' 轉傳失敗：LINE 斷線（模擬）');
+        onChange();
+        return { ok: false, down: true };
+      }
+      const eventId = 'ev-' + U.fnv(pid + text + (++S.eseq)).slice(0, 8);
+      m.eventId = eventId;
+      return webhook({ eventId, userId: p && p.lineUserId, pid, text, sample, forwardedAt: st.label });
+    }
+    /* 模擬 LINE 平台重送同一個事件 */
+    function redeliver(eventId) {
+      const rec = S.events.find(e => e.eventId === eventId);
+      if (!rec) return;
+      return webhook({ eventId, userId: rec.userId, text: rec.text });
+    }
+
+    /* 網頁備援入口：LINE 故障時，業務把原文貼到網頁 */
+    async function webIntake(pid, text, source) {
+      const p = person(pid);
+      const o = createOrder(text, { source: source || 'WEB', by: p.name, byId: p.id, role: p.role });
+      onChange();
+      await runParse(o);
+      return o;
+    }
+
+    /* ===== 業務確認 ===== */
+    function lowOf(o, k) {
+      const f = o.draft.fields[k];
+      if (f.value == null || f.value === '') return 'missing';
+      if (f.confirmed) return null;
+      if (k === 'model' && !E.TABLES.models.includes(f.value)) return 'low';
+      return f.conf < S.P.conf.threshold ? 'low' : null;
+    }
+    function pendingFields(o) {
+      if (!o.draft) return [];
+      return [...REQ, 'isAdd'].map(k => ({ k, why: lowOf(o, k) })).filter(x => x.why);
+    }
+    function followups(o) {
+      return pendingFields(o).map(({ k, why }) => {
+        const f = o.draft.fields[k]; let text = '', chips = [], input = null;
+        if (k === 'customer') { text = why === 'missing' ? '客戶是哪一家？' : '客戶是「' + f.value + '」嗎？'; chips = Object.keys(E.TABLES.customers).map(c => ({ v: c, l: c })); }
+        if (k === 'model') { text = why === 'missing' ? '機種代碼是什麼？' : '機種「' + f.value + '」不在對照表，是哪一個？'; chips = E.TABLES.models.map(c => ({ v: c, l: c })); }
+        if (k === 'qty') { text = '這張要幾片？'; input = 'number'; }
+        if (k === 'due') {
+          if (why === 'missing') { text = '客戶要幾號出貨？'; input = 'date'; }
+          else { text = '「' + (f.span ? o.raw.text.slice(f.span[0], f.span[1]) : '交期') + '」是哪一天？'; chips = (f.alts || [{ value: f.value, label: U.mdw(f.value) }]).map(a => ({ v: a.value, l: a.label })); }
+        }
+        if (k === 'partChange') { text = '這張要換零件嗎？原文沒有講。'; chips = [{ v: 'true', l: '要換' }, { v: 'false', l: '不換' }]; }
+        if (k === 'isAdd') { text = '這是追加單還是一般單？'; chips = [{ v: 'true', l: '追加單' }, { v: 'false', l: '一般單' }]; }
+        return { k, why, text, chips, input };
+      });
+    }
+    function coerce(k, v) {
+      if (v === '' || v == null) return null;
+      if (k === 'qty') { const n = parseInt(String(v).replace(/,/g, ''), 10); return n > 0 ? n : null; }
+      if (k === 'partChange' || k === 'isAdd') return v === true || v === 'true';
+      return v;
+    }
+    function setField(o, k, raw) {
+      if (o.status !== 'received' || !o.draft) return;
+      const f = o.draft.fields[k]; const v = coerce(k, raw);
+      f.value = v; f.confirmed = v != null;
+      onChange();
+    }
+    function keepField(o, k) { if (o.draft) { o.draft.fields[k].confirmed = true; onChange(); } }
+    function changesOf(o) {
+      const out = [];
+      for (const k of E.FIELD_ORDER) {
+        const a = o.parse.fields[k].value, b = o.draft.fields[k].value;
+        if (String(a) !== String(b)) out.push({ field: k, from: a, to: b });
+      }
+      return out;
+    }
+    function submit(o, pid) {
+      if (o.status !== 'received' || !o.draft) return { ok: false, msg: '這張不是待確認狀態' };
+      const pend = pendingFields(o);
+      if (pend.length) return { ok: false, msg: '還有 ' + pend.length + ' 欄要處理' };
+      const p = person(pid);
+      const chg = changesOf(o);
+      const st = log(p.name, 'sales', '確認並送出', o.id, chg.length ? '修改欄位：' + chg.map(c => E.FIELD_LABEL[c.field] + ' ' + showVal(c.field, c.from) + ' → ' + showVal(c.field, c.to)).join('；') : '沒有修改欄位');
+      o.confirm = { by: p.name, byId: p.id, at: st.label, changes: chg };
+      o.anomalies = anomalies(o);
+      if (o.anomalies.length) log('系統', 'system', '異常提醒', o.id, o.anomalies.join('；'));
+      o.status = 'queued'; o.t.confirmed = S.tick;
+      const c = runCalc(o, '首次試算');
+      const b = c.result.cands[c.result.best];
+      log('系統', 'system', '試算完成', o.id, calcRef(c) + '；建議排在 ' + b.afterId + ' 之後，額外換線 ' + b.extraC + ' 次');
+      o.t.calc = S.tick;
+      onChange();
+      return { ok: true, calc: c };
+    }
+    function returnOrder(o, pid) {
+      if (o.status !== 'received') return;
+      o.status = 'returned';
+      log(person(pid).name, 'sales', '退回', o.id, '原文保留，欄位草稿作廢');
+      onChange();
+    }
+
+    /* ===== 試算 ===== */
+    const calcRef = c => c ? c.id + ' r' + c.rev : '';
+    const latestCalc = o => o.calcs[o.calcs.length - 1] || null;
+    const curPver = () => S.pver[S.pver.length - 1].v;
+    function xOf(o) {
+      const f = o.draft.fields;
+      return { id: o.id, customer: f.customer.value, model: f.model.value, qty: f.qty.value, due: f.due.value, partChange: !!f.partChange.value };
+    }
+    function runCalc(o, reason) {
+      const st = stamp();
+      const X = xOf(o);
+      const result = E.calc(S.queue, X, withChangeover(S.P), { date: st.date, hour: st.hour });
+      if (!o.calcId) o.calcId = 'T-' + pad4(++S.tseq);
+      const c = { id: o.calcId, rev: o.calcs.length + 1, reason, at: st.label, result, X, P: clone(S.P), pv: curPver(), queueIds: S.queue.map(q => q.id) };
+      o.calcs.push(c);
+      return c;
+    }
+    function recalcPending(reason) {
+      S.orders.filter(o => o.status === 'queued').forEach(o => {
+        const c = runCalc(o, reason);
+        const b = c.result.cands[c.result.best];
+        log('系統', 'system', '重新試算', o.id, calcRef(c) + '（' + reason + '）；建議排在 ' + b.afterId + ' 之後；輸入指紋 ' + c.result.fingerprint);
+      });
+    }
+    /* 一行結論 */
+    function summary(o) {
+      const c = latestCalc(o); if (!c) return null;
+      const r = c.result, b = r.cands[r.best];
+      return { cand: b, risk: E.risk(b, r.cal, c.P), loss: E.lossLevel(b.deltaLoss, c.P), explain: explainCalc(b),
+        text: '建議排在 ' + b.afterId + ' 後，預計 ' + b.startAt.label + ' 開工；罰款 +NT$' + fmtN(Math.round(b.deltaLoss)) + '；連帶 ' + b.newLate.length + ' 張晚交' };
+    }
+
+    /* ===== AI 輔助：只提醒、解釋、估計與分類，不改試算與欄位 ===== */
+    // 異常檢查：只提醒，不擋送出。1–20,000 片的範圍是【我猜的】，待業務確認。
+    function anomalies(o) {
+      const f = o.draft ? o.draft.fields : null;
+      if (!f) return o.anomalies || [];
+      const out = [];
+      const today = stamp().date;
+      if (f.qty.value != null && (f.qty.value <= 0 || f.qty.value > 20000)) out.push('數量 ' + f.qty.value + ' 片超出 1 到 20,000 的範圍，請確認');
+      if (f.due.value != null && String(f.due.value) < today) out.push('交期 ' + f.due.value + ' 早於今天 ' + today + '，請確認');
+      if (f.model.value != null && !E.TABLES.models.includes(f.model.value)) out.push('機種 ' + f.model.value + ' 不在機種表中');
+      if (f.customer.value != null && !E.TABLES.customers[f.customer.value]) out.push('客戶 ' + f.customer.value + ' 不在客戶名單中');
+      return out;
+    }
+    // 換線實績估計：由已回填實績的平均推估；沒有實績時沿用參數，並標示來源
+    /* 排程用實際換線時間（滾動）：每張回填實績折成「每次換線小時」，指數加權（α＝0.10【我猜的】）逐筆更新；
+       超過目前估計 1.5 倍（或≤0）的筆數視為異常、不納入；已用筆數未滿 7 筆（暖機）時沿用參數。 */
+    function estimateChangeover() {
+      const prior = S.P.data.changeoverH, ALPHA = 0.10, WARM = 7, GATE = 1.5;
+      let est = prior, used = 0, skipped = 0;
+      S.orders.filter(o => o.actual && o.actual.changeovers > 0).forEach(o => {
+        const h = o.actual.hours / o.actual.changeovers;
+        if (!(h > 0) || h > GATE * est) { skipped++; return; }
+        est = ALPHA * h + (1 - ALPHA) * est; used++;
+      });
+      const warm = used < WARM;
+      const hours = Math.round((warm ? prior : est) * 100) / 100;
+      const label = warm
+        ? '沿用參數 ' + prior + ' h（暖機中：已用 ' + used + ' 筆，未滿 ' + WARM + ' 筆）'
+        : '滾動估計（指數加權，已用 ' + used + ' 筆，異常排除 ' + skipped + ' 筆）';
+      return { hours, label, n: used, skipped, prior, warm };
+    }
+    /* 試算改用上面的估計值（沒有實績時等於參數，行為不變） */
+    function withChangeover(P) {
+      const e = estimateChangeover();
+      return Object.assign({}, P, { data: Object.assign({}, P.data, { changeoverH: e.hours }) });
+    }
+
+    /* ===== 生管決定 ===== */
+    function decide(o, type, pid, opt) {
+      if (o.status !== 'queued') return { ok: false, msg: '這張不是待決定狀態' };
+      const calc = latestCalc(o);
+      if (!calc) return { ok: false, msg: '沒有試算紀錄' };
+      const r = calc.result;
+      let c = r.cands[r.best];
+      const reason = String((opt && opt.reason) || '').trim();
+      if (type === 'adjust') c = r.cands.find(x => x.k === (opt && opt.k)) || c;
+      // 回給客戶的期限：由生管訂，預填試算完成日；不能早於完成日；和完成日不同就要寫原因
+      const minDate = c.endAt.date;
+      const promise = (opt && opt.promise) || minDate;
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(promise)) return { ok: false, msg: '客戶期限要是日期' };
+      if (promise < minDate) return { ok: false, msg: '客戶期限不能早於試算完成日 ' + U.mdw(minDate) };
+      const needReason = type === 'adjust' || promise !== minDate;
+      if (needReason && reason.length < 4) return { ok: false, msg: (type === 'adjust' ? '調整' : '改客戶期限') + '一定要寫原因（至少 4 個字）' };
+      const p = person(pid);
+      const rk = E.risk(c, r.cal, calc.P);
+      const st = log(p.name, 'planner', type === 'adopt' ? '採用 AI 建議' : '調整', o.id,
+        '依據 ' + calcRef(calc) + '；排在 ' + c.afterId + ' 之後，' + c.startAt.label + ' 開工；試算完成 ' + c.endAt.label +
+        '；回給客戶期限 ' + U.mdw(promise) + (promise !== minDate ? '（比完成日晚 ' + U.workdaysBetween(minDate, promise) + ' 個工作天）' : '') + (needReason ? '；原因：' + reason : ''));
+      const ex = explainCalc(c);
+      o.decision = {
+        type, k: c.k, afterId: c.afterId, reason, reasonCat: reasonCategory(reason), explain: ex.ok ? ex.text : null, by: p.name, at: st.label, calc: calcRef(calc), promise, promiseChanged: promise !== minDate,
+        actualSlot: c.startAt.label + ' 開工（' + r.entry.label + ' 排入）',
+        est: { extraC: c.extraC, extraH: c.extraH, endDate: c.endAt.date, endLabel: c.endAt.label, lateX: c.lateX, risk: rk.label, startLabel: c.startAt.label }
+      };
+      o.status = 'decided'; o.t.decided = S.tick;
+      log('AI', 'ai', '模板解釋', o.id, ex.ok ? ex.text + '（模板 v1，數字已對照試算結果）' : '數字檢查未通過，未顯示解釋：' + ex.bad.join('、'));
+      S.queue = c.seqJobs.map(j => { const n = Object.assign({}, j); delete n.notBefore; delete n.inserted; if (j.id === o.id) n.fromOrder = true; return n; });
+      recalcPending('佇列已變動：' + o.id + ' 已插入');
+      const card = { from: 'oa', kind: 'due', order: o.id };
+      const to = o.confirm && person(o.confirm.byId) && person(o.confirm.byId).status === 'bound' ? [o.confirm.byId] : boundSales().map(x => x.id);
+      to.forEach(id => notify(id, '可交日', o.id, o.decision.calc, card, 'push'));
+      const boss = S.people.find(x => x.role === 'boss' && x.status === 'bound');
+      if (boss) notify(boss.id, '可交日卡片', o.id, o.decision.calc, { from: 'oa', kind: 'bossdue', order: o.id, replied: false }, 'push');
+      onChange();
+      return { ok: true };
+    }
+
+    /* ===== 回覆客戶 ===== */
+    function replyInfo(o) {
+      const calc = latestCalc(o);
+      if (!calc) return { calc: null };
+      if (!o.decision) return { calc, noDecision: true };
+      const est = o.decision.est; const req = o.draft.fields.due.value;
+      const due = o.decision.promise;
+      return { calc, est, dueDate: due, req, draft: E.replyDraft(o.draft, due, req), onTime: due <= req };
+    }
+    function copyReply(o, pid, text) {
+      const d = replyInfo(o);
+      if (!d.calc) return { ok: false, msg: '沒有試算紀錄，不能回覆' };
+      if (d.noDecision) return { ok: false, msg: '生管還沒決定，不能回覆' };
+      const p = person(pid);
+      const st = log(p.name, 'sales', '複製回覆', o.id, '交期 ' + U.mdw(d.dueDate) + '，對應試算 ' + o.decision.calc);
+      o.reply = { dueDate: d.dueDate, at: st.label, by: p.name, calc: o.decision.calc, text: text || d.draft };
+      o.status = 'replied'; o.t.replied = S.tick;
+      const boss = S.people.find(x => x.role === 'boss' && x.status === 'bound');
+      if (boss) notify(boss.id, '可交日卡片', o.id, o.decision.calc, { from: 'oa', kind: 'bossdue', order: o.id, replied: true }, 'push');
+      onChange();
+      return { ok: true };
+    }
+    function sampleActual(o) {
+      const idx = S.orders.filter(x => x.status !== 'returned').indexOf(o);
+      const f = [1.17, 0.88, 1.31][((idx % 3) + 3) % 3];
+      const est = o.decision.est;
+      const hours = Math.round(est.extraH * f * 100) / 100;
+      return { shipDate: o.reply ? o.reply.dueDate : est.endDate, changeovers: Math.round(hours / S.P.data.changeoverH), hours, sample: true };
+    }
+    function saveActual(o, pid, a) {
+      if (!o.reply) return { ok: false, msg: '還沒回覆客戶' };
+      const p = person(pid);
+      const st = log(p.name, 'sales', '回填實際結果', o.id, '實際出貨 ' + U.mdw(a.shipDate) + '；額外換線 ' + a.changeovers + ' 次 / ' + a.hours + ' h' + (a.sample ? '（示意數字）' : ''));
+      const est = estimateChangeover();
+      const perAct = a.changeovers > 0 ? a.hours / a.changeovers : null;
+      const estErr = perAct != null ? Math.abs(perAct - est.hours) / est.hours : null;
+      const estFlag = estErr != null && estErr > 0.2;
+      o.actual = Object.assign({ at: st.label, estBasis: est.label, estErr: estErr == null ? null : Math.round(estErr * 100) / 100, estFlag }, a);
+      if (estFlag) log('系統', 'system', '換線估計誤差提醒', o.id, '每次換線實績 ' + perAct.toFixed(2) + ' h，估計 ' + est.hours + ' h，誤差 ' + Math.round(estErr * 100) + '%，超過 20%【我猜的】，要檢討');
+      o.status = 'done'; o.t.done = S.tick;
+      onChange();
+      return { ok: true };
+    }
+
+    /* ===== 逾時提醒 ===== */
+    function waitMin(o) {
+      if (o.status === 'received' && o.parse) return S.tick - o.t.parsed;
+      if (o.status === 'queued') return S.tick - o.t.confirmed;
+      return null;
+    }
+    function timerState(o) {
+      const w = waitMin(o); if (w == null) return null;
+      if (o.status === 'received') return { w, level: w >= S.ops.salesRemindMin ? 1 : 0, who: '業務' };
+      return { w, level: w >= S.ops.plannerEscalateMin ? 2 : w >= S.ops.plannerRemindMin ? 1 : 0, who: '生管' };
+    }
+    function checkTimers() {
+      S.orders.forEach(o => {
+        const t = timerState(o); if (!t) return;
+        if (o.status === 'received' && t.level >= 1 && !o.reminded.sales) {
+          o.reminded.sales = true;
+          boundSales().forEach(p => notify(p.id, '逾時提醒', o.id, '', { from: 'oa', kind: 'remind', order: o.id, min: t.w }, 'push'));
+          log('系統', 'system', '逾時提醒', o.id, '業務 ' + t.w + ' 分鐘未確認（門檻 ' + S.ops.salesRemindMin + ' 分鐘，【我猜的】）');
+        }
+        if (o.status === 'queued' && t.level >= 1 && !o.reminded.planner) {
+          o.reminded.planner = true;
+          log('系統', 'system', '逾時提醒', o.id, '生管 ' + t.w + ' 分鐘未決定（門檻 ' + S.ops.plannerRemindMin + ' 分鐘，【我猜的】）；生管看板標示');
+        }
+        if (o.status === 'queued' && t.level >= 2 && !o.reminded.lead) {
+          o.reminded.lead = true;
+          const lead = S.people.find(x => x.role === 'lead' && x.status === 'bound');
+          if (lead) notify(lead.id, '升級', o.id, calcRef(latestCalc(o)), { from: 'oa', kind: 'escalate', order: o.id, min: t.w }, 'push');
+          log('系統', 'system', '升級', o.id, '生管 ' + t.w + ' 分鐘未決定，升級給生管主管（門檻 ' + S.ops.plannerEscalateMin + ' 分鐘，【我猜的】）');
+        }
+      });
+    }
+
+    /* ===== 參數（後台） ===== */
+    function applyParams(n, by) {
+      const G = S.P.guess; const changes = []; let affects = false;
+      const cmp = (label, a, b, unit, calcKey) => { if (String(a) !== String(b)) { changes.push(label + ' ' + a + ' → ' + b + (unit || '')); if (calcKey) affects = true; } };
+      if (n.guess) {
+        const g = n.guess;
+        if (!g.slots || !g.slots.length) return { ok: false, msg: '固定插單時段至少要有一個' };
+        if (!(g.wA >= 0)) return { ok: false, msg: '甲的虛擬權重要是數字' };
+        if (!(g.lossLow <= g.lossMid)) return { ok: false, msg: '罰款「低」上限不能大於「中」上限' };
+        cmp('甲虛擬權重', G.wA, g.wA, '%／天', 1); cmp('甲最多延後', G.maxDelayA, g.maxDelayA, ' 天', 1);
+        cmp('固定插單時段', G.slots.join('、'), g.slots.join('、'), '', 1); cmp('同機種合併', G.merge ? '開' : '關', g.merge ? '開' : '關', '', 1);
+        cmp('凍結', G.freezeH, g.freezeH, ' 小時', 1); cmp('換零件額外換線', G.partExtra, g.partExtra, ' 次', 1);
+        cmp('比較位置數', G.nCand, g.nCand, '', 1); cmp('工作日開始', G.dayStart, g.dayStart, ' 點', 1);
+        cmp('罰款低上限', G.lossLow, g.lossLow, '', 1); cmp('罰款中上限', G.lossMid, g.lossMid, '', 1);
+      }
+      if (n.prices) E.TABLES.models.forEach(m => cmp('單價 ' + m + '（個案平均）', S.P.prices[m], n.prices[m], ' 元／片', 1));
+      if (n.ops) {
+        cmp('業務提醒', S.ops.salesRemindMin, n.ops.salesRemindMin, ' 分鐘'); cmp('生管提醒', S.ops.plannerRemindMin, n.ops.plannerRemindMin, ' 分鐘');
+        cmp('升級生管主管', S.ops.plannerEscalateMin, n.ops.plannerEscalateMin, ' 分鐘');
+      }
+      if (n.ai) cmp('解析模式', S.ai.mode, n.ai.mode);
+      if (n.pending) { cmp('是否接 ERP', S.pending.erp, n.pending.erp); cmp('插件站數', S.pending.stations || '（空）', n.pending.stations || '（空）'); cmp('班次', S.pending.shifts || '（空）', n.pending.shifts || '（空）'); }
+      if (!changes.length) return { ok: false, msg: '沒有任何變更' };
+      if (n.guess) Object.assign(G, n.guess);
+      if (n.prices) Object.assign(S.P.prices, n.prices);
+      if (n.ops) Object.assign(S.ops, n.ops);
+      if (n.ai) Object.assign(S.ai, n.ai);
+      if (n.pending) Object.assign(S.pending, n.pending);
+      const v = curPver() + 1;
+      const st = stamp();
+      S.pver.push(Object.freeze({ v, at: st.label, by: by || '管理者', changes: Object.freeze(changes.slice()) }));
+      changes.forEach(c => log(by || '管理者', 'admin', '參數變更 p' + v, '', c));
+      const waiting = S.orders.filter(o => o.status === 'queued').length;
+      if (affects) recalcPending('參數 p' + v);
+      onChange();
+      return { ok: true, n: changes.length, v, recalc: affects ? waiting : 0 };
+    }
+    function resetParams(by) {
+      const d = caseDefaults();
+      return applyParams({ guess: d.guess, prices: d.prices, ops: Object.assign({}, OPS_DEFAULT), ai: Object.assign({}, AI_DEFAULT) }, by);
+    }
+
+    /* ===== 指標（只看單與機台，不看個人） ===== */
+    function metrics() {
+      const os = S.orders.filter(o => o.status !== 'returned');
+      const decided = os.filter(o => o.decision), filled = os.filter(o => o.actual), replied = os.filter(o => o.reply);
+      const errs = filled.map(o => { const e = o.decision.est.extraH; return e > 0 ? Math.abs(o.actual.hours - e) / e : null; }).filter(x => x != null);
+      const lat = replied.map(o => o.t.replied - o.raw.receivedAbs);
+      return {
+        n: os.length, decided: decided.length, adopt: decided.filter(o => o.decision.type === 'adopt').length, adjust: decided.filter(o => o.decision.type === 'adjust').length,
+        replied: replied.length, covered: replied.filter(o => o.reply.calc).length, filled: filled.length,
+        qty: filled.reduce((a, o) => a + o.draft.fields.qty.value, 0), onTime: filled.filter(o => o.actual.shipDate <= o.draft.fields.due.value).length,
+        onPromise: filled.filter(o => o.actual.shipDate <= o.decision.promise).length,
+        estC: decided.reduce((a, o) => a + o.decision.est.extraC, 0), actC: filled.reduce((a, o) => a + o.actual.changeovers, 0),
+        err: errs.length ? errs.reduce((a, b) => a + b, 0) / errs.length : null,
+        lat: lat.length ? lat.reduce((a, b) => a + b, 0) / lat.length : null,
+        anomalies: os.filter(o => (o.anomalies || []).length).length,
+        estFlags: filled.filter(o => o.actual.estFlag).length,
+        reasonCats: decided.reduce((m, o) => { const k = o.decision.reasonCat; if (k) m[k] = (m[k] || 0) + 1; return m; }, {}),
+        push: pushCount(), reply: replyCount(), failed: S.notes.filter(n => n.status === 'failed').length
+      };
+    }
+
+    /* ===== 進度 ===== */
+    function stage(o) {
+      return { received: 1, queued: 3, decided: 4, replied: 5, done: 6, returned: 0 }[o.status];
+    }
+
+    function showVal(k, v) {
+      if (v == null || v === '') return '—';
+      if (k === 'qty') return fmtN(v) + ' 片';
+      if (k === 'due') return U.mdw(v);
+      if (k === 'partChange') return v ? '要換' : '不換';
+      if (k === 'isAdd') return v ? '追加單' : '一般單';
+      return String(v);
+    }
+
+    return {
+      S, stamp, advance, log, auditList, person, boundSales,
+      bind, unbind, regenCode, setLineDown, pushCount, replyCount,
+      forward, webhook, redeliver, webIntake, runParse, anomalies, estimateChangeover,
+      lowOf, pendingFields, followups, setField, keepField, changesOf, submit, returnOrder,
+      calcRef, latestCalc, summary, decide, replyInfo, copyReply, sampleActual, saveActual,
+      timerState, checkTimers, applyParams, resetParams, metrics, stage, showVal, curPver
+    };
+  }
+
+  // 理由分類：關鍵字規則，只供事後檢討，不影響試算
+  function reasonCategory(text) {
+    const t = String(text || '').trim();
+    if (!t) return null;
+    if (/機台|設備|治具|故障|保養|檢修|換線/.test(t)) return '設備';
+    if (/缺料|物料|齊套|來料|供應|料/.test(t)) return '物料';
+    if (/客戶|客人|期限|改期/.test(t)) return '客戶';
+    return '其他';
+  }
+  // 解釋：只用試算結果的數字與標籤；文字中每個數字都必須在試算結果中找得到，否則不顯示
+  function explainCalc(b) {
+    const text = '建議排在 ' + b.afterId + ' 之後，' + b.startAt.label + ' 開工，試算完成 ' + b.endAt.label + '，額外換線 ' + b.extraC + ' 次。';
+    const allowed = new Set(JSON.stringify(b).match(/\d+(\.\d+)?/g) || []);
+    const bad = (text.match(/\d+(\.\d+)?/g) || []).filter(n => !allowed.has(n));
+    return { text, ok: bad.length === 0, bad };
+  }
+  const api = { create, SAMPLES, ROLE, STATUS, STAGES, SRC, OPS_DEFAULT, AI_DEFAULT, reasonCategory, explainCalc };
+  if (typeof module !== 'undefined' && module.exports) module.exports = api; else root.Store = api;
+})(typeof window !== 'undefined' ? window : globalThis);
+
+/* ===== ui-common.js ===== */
+/* 昇嶺電子 單一插單入口 Demo v2 — 共用畫面元件
+   時間軸、候選表、AI 分析、參數說明沿用 v1，算式文字不變。 */
+(function (root) {
+  'use strict';
+  const E = root.Engine, U = E.util, Store = root.Store;
+  const A = root.App = root.App || {};
+
+  A.ui = {
+    role: 'boss', salesId: 'P-02', plannerId: 'P-04',
+    liff: null,               // { page: 'confirm'|'reply'|'list'|'bind', id }
+    sel: null, adj: {}, reason: {}, edit: {}, promise: {},
+    adminTab: 'people', auditFilter: 'all', fu: {},
+    web: { text: '', source: '電話' }, bindCode: '', confirmReset: false, lastMsg: ''
+  };
+
+  const $ = (s, r) => (r || document).querySelector(s);
+  const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const fmtN = n => Number(n).toLocaleString('en-US');
+  const yen = n => 'NT$ ' + fmtN(Math.round(n));
+  const tag = (c, t) => '<span class="tag ' + c + '">' + t + '</span>';
+  const guessTag = () => tag('guess', '【我猜的】');
+  const simTag = (t) => tag('sim', t || '模擬');
+  const demoTag = o => o.sample ? ' ' + tag('demo', '示意') : '';
+  const statusChip = o => '<span class="chip s-' + o.status + '">' + Store.STATUS[o.status] + '</span>';
+  const srcTag = k => '<span class="src' + (k === 'LINE' ? ' src-line' : '') + '">' + esc(Store.SRC[k] || k) + '</span>';
+  const ord = id => A.st.S.orders.find(o => o.id === id);
+  const minTxt = m => m >= 60 ? Math.floor(m / 60) + ' 小時' + (m % 60 ? ' ' + (m % 60) + ' 分' : '') : m + ' 分';
+
+  function toast(msg) {
+    const t = $('#toast'); if (!t) return;
+    t.textContent = msg; t.classList.add('on');
+    clearTimeout(toast.h); toast.h = setTimeout(() => t.classList.remove('on'), 3400);
+  }
+
+  /* 原文：黑邊白底，標出取值位置 */
+  function rawHTML(text, spans) {
+    const list = (spans || []).filter(s => s && s.span).map(s => ({ s: s.span[0], e: s.span[1], low: s.low })).sort((a, b) => a.s - b.s);
+    let out = '', pos = 0;
+    for (const sp of list) {
+      if (sp.s < pos || sp.e > text.length) continue;
+      out += esc(text.slice(pos, sp.s)) + '<mark' + (sp.low ? ' class="low"' : '') + '>' + esc(text.slice(sp.s, sp.e)) + '</mark>';
+      pos = sp.e;
+    }
+    return out + esc(text.slice(pos));
+  }
+  const rawBlock = (o, spans) => '<pre class="raw" aria-label="原文，不可修改">' + rawHTML(o.raw.text, spans) + '</pre>';
+  function rawMeta(o) {
+    return '<dl class="kv"><dt>來源</dt><dd>' + srcTag(o.raw.source) + ' ' + esc(o.raw.by) + '</dd>' +
+      '<dt>轉傳時間</dt><dd>' + esc(o.raw.forwardedAt) + '</dd>' +
+      '<dt>系統收到</dt><dd>' + esc(o.raw.receivedAt) + (o.raw.eventId ? ' <span class="sub mono">' + esc(o.raw.eventId) + '</span>' : '') + '</dd></dl>';
+  }
+
+  /* 進度：已收單→已確認→試算→生管決定→已回覆→已回填（三端同一個狀態） */
+  function prog(o) {
+    if (o.status === 'returned') return '<p class="prog-ret">已退回，原文保留</p>';
+    const n = A.st.stage(o);
+    return '<ol class="prog" aria-label="進度：' + Store.STAGES.slice(0, n).join('、') + ' 已完成">' + Store.STAGES.map((s, i) =>
+      '<li class="' + (i < n ? 'done' : i === n ? 'cur' : '') + '">' + s + '</li>').join('') + '</ol>';
+  }
+
+  /* ===== v1：時間軸 ===== */
+  function timeline(rows, cal, hlId) {
+    const Hd = cal.Hday; const maxEnd = Math.max(...rows.map(r => r.end), Hd);
+    const nd = Math.min(7, Math.max(2, Math.ceil(maxEnd / Hd - 1e-9)));
+    const L = cal.L, ds = cal.ds; const slots = cal.slotHours();
+    const pct = h => ((h - ds) / L * 100);
+    let html = '<div class="tl"><div class="scale"><span></span><div>' + [ds, ds + 2, ds + 4, ds + 6, ds + 8].filter(h => h <= ds + L + 0.01).map(h => '<span style="left:' + pct(h) + '%">' + U.hhmm(h) + '</span>').join('') + '</div></div>';
+    for (let d = 0; d < nd; d++) {
+      const date = U.addWork(cal.base, d);
+      let blocks = '';
+      rows.forEach(r => {
+        const a = Math.max(r.start, d * Hd), b = Math.min(r.end, (d + 1) * Hd);
+        if (b - a < 1e-6) return;
+        const left = (a - d * Hd) / Hd * 100, w = (b - a) / Hd * 100;
+        const j = r.job; const lab = j.customer + j.model + ' ' + fmtN(j.qty);
+        const cls = 'blk' + (j.id === hlId ? ' x' : '') + (r.late > 0 ? ' late' : '') + (j.running ? ' run' : '');
+        blocks += '<div class="' + cls + '" style="left:' + left.toFixed(2) + '%;width:' + w.toFixed(2) + '%" title="' + esc(j.id + ' ' + lab + '；' + cal.at(r.start).label + ' → ' + cal.atEnd(r.end).label + (r.late ? '；預計晚 ' + r.late + ' 天' : '')) + '">' + (w > 7 ? esc(lab) : '') + '</div>';
+      });
+      const ticks = slots.map(h => '<div class="tick" style="left:' + pct(h) + '%"></div>').join('');
+      html += '<div class="day"><div class="dl">' + U.md(date) + '<br>週' + U.WD[U.dow(date)] + '</div><div class="track">' + ticks + blocks + '</div></div>';
+    }
+    html += '<div class="tl-leg"><span><i></i>已排的單</span><span><i class="x"></i>這張單</span><span><i class="late"></i>預計晚交</span><span>虛線：固定插單時段 ' + slots.map(U.hhmm).join('、') + '</span></div></div>';
+    return html;
+  }
+
+  /* ===== v1：參數說明 ===== */
+  function paramLines(P) {
+    const G = P.guess;
+    return '<ul class="params"><li>SMT 產能 ' + P.data.rate + ' 片／小時 ' + tag('data', '個案資料') + '</li>' +
+      '<li>換線 ' + P.data.changeoverH.toFixed(2) + ' 小時／次（機台紀錄） ' + tag('data', '個案資料') + '；現行排程固定抓 ' + P.data.sched05 + ' 小時／線／天，實際約 ' + P.data.actualPerLineDay + '，所以這裡不用 ' + P.data.sched05 + '</li>' +
+      '<li>每天可排 ' + P.data.poolHoursPerDay.toFixed(2) + ' 小時＝九月 (760＋133)÷26 ' + tag('data', '個案資料') + '</li>' +
+      '<li>罰款：乙 2%／天、丙 1%／天（個案合約）；甲沒有合約罰款，用虛擬權重 ' + G.wA + '%／天 ' + guessTag() + '</li>' +
+      '<li>甲最多延後 ' + G.maxDelayA + ' 天 ' + guessTag() + '；固定插單時段 ' + G.slots.join('、') + ' ' + guessTag() + '；凍結 ' + G.freezeH + ' 小時 ' + guessTag() + '；同機種合併 ' + (G.merge ? '開' : '關') + ' ' + guessTag() + '</li>' +
+      '<li>單價用個案平均 1,200 元/片（各機種未提供），' + E.TABLES.models.map(m => m + ' ' + P.prices[m] + ' 元／片').join('、') + '。金額只用來排序，不是報價</li>' +
+      '<li>沒有計入插件站數與班次（資料沒有，目前插件站是瓶頸）</li></ul>';
+  }
+
+  /* ===== v1：候選位置比較 ===== */
+  function candTable(o, calc, selK, selectable) {
+    const r = calc.result;
+    return '<div class="scroll-x"><table class="cmp"><thead><tr>' + (selectable ? '<th></th>' : '') + '<th>排在這張之後</th><th>預計開工</th><th>預計完成</th><th>額外換線</th><th>本單延誤</th><th>罰款增加</th><th>風險</th></tr></thead><tbody>' +
+      r.cands.map((c, i) => {
+        const rk = E.risk(c, r.cal, calc.P);
+        return '<tr class="' + (i === r.best ? 'best ' : '') + (selectable && selK === c.k ? 'sel' : '') + '">' +
+          (selectable ? '<td><input type="radio" name="cand-' + o.id + '" value="' + c.k + '" data-act-change="cand" data-id="' + o.id + '"' + (selK === c.k ? ' checked' : '') + ' aria-label="排在 ' + c.afterId + ' 之後"></td>' : '') +
+          '<td>' + esc(c.afterId + ' ' + c.after.customer + c.after.model) + (i === r.best ? ' ' + tag('ai', '建議') : '') + '</td><td>' + c.startAt.label + '</td><td>' + c.endAt.label + '</td><td>' + c.extraC + ' 次</td><td>' + (c.lateX ? c.lateX + ' 天' : '0') + '</td><td>' + yen(c.deltaLoss) + '</td><td>' + rk.label + '</td></tr>';
+      }).join('') + '</tbody></table></div>';
+  }
+
+  /* ===== v1：AI 分析（插入時機、工時、換線、罰款、風險、併單） ===== */
+  function aiPanel(o, calc) {
+    const r = calc.result, c = r.cands[r.best], P = calc.P; const rk = E.risk(c, r.cal, P); const ll = E.lossLevel(c.deltaLoss, P);
+    const x = c.x; const runH = o.draft.fields.qty.value / P.data.rate;
+    const merge = (() => {
+      const m = r.cands.filter(z => z.sameModelAdj);
+      if (c.sameModelAdj) return '建議位置與同機種相鄰，已併單。';
+      if (m.length) { const z = m.sort((a, b) => a.totalLoss - b.totalLoss)[0]; return '併單位置：排在 ' + z.afterId + ' 之後，可少換線，但罰款增加 ' + yen(z.deltaLoss) + '，建議位置是 ' + yen(c.deltaLoss) + '。'; }
+      return '候選位置裡沒有同機種相鄰的位置，沒有併單可做。';
+    })();
+    const flags = [];
+    if (c.resorted) flags.push('後段沒凍結的單裡，會遲的單已依「金額 × 每日罰款率」由高到低重排。');
+    if (c.aLate.length) flags.push('甲的單預計晚過 ' + P.guess.maxDelayA + ' 天（上限，【我猜的】），建議交老闆決定。');
+    if (c.newLate.length) flags.push('連帶變遲：' + c.newLate.map(n => n.id + ' ' + n.customer + n.model + ' 晚 ' + n.late + ' 天').join('、') + '。');
+    const extra = c.cX + (c.cNextNew - c.cNextOld);
+    return '<dl style="margin:0">' +
+      '<div class="arow"><dt>插入時機</dt><dd><b>排在 ' + esc(c.afterId + ' ' + c.after.customer + c.after.model + ' ' + fmtN(c.after.qty)) + ' 之後</b>，預計 ' + c.startAt.label + ' 開工、' + c.endAt.label + ' 完成。<span class="fm">' + esc(r.entry.label) + ' 的固定時段排入；不拆單，前一張做完才換</span></dd></div>' +
+      '<div class="arow"><dt>單量與工時</dt><dd>' + fmtN(x.job.qty) + ' 片，約 ' + (runH + c.cX * P.data.changeoverH).toFixed(2) + ' 小時<span class="fm">' + fmtN(x.job.qty) + ' ÷ ' + P.data.rate + ' = ' + runH.toFixed(2) + ' h；本單換線 ' + c.cX + ' 次 × ' + P.data.changeoverH.toFixed(2) + ' = ' + (c.cX * P.data.changeoverH).toFixed(2) + ' h</span></dd></div>' +
+      '<div class="arow"><dt>換線</dt><dd>這次插單多出 <b>' + c.extraC + ' 次</b>（' + c.extraH.toFixed(2) + ' 小時）<span class="fm">本單 ' + c.cX + ' 次；下一張 ' + c.cNextOld + ' → ' + c.cNextNew + ' 次（' + (c.cNextNew - c.cNextOld >= 0 ? '+' : '−') + Math.abs(c.cNextNew - c.cNextOld) + '）；合計 ' + c.cX + (c.cNextNew - c.cNextOld >= 0 ? ' + ' : ' − ') + Math.abs(c.cNextNew - c.cNextOld) + ' = ' + extra + ' 次</span></dd></div>' +
+      '<div class="arow"><dt>罰款損失</dt><dd><span class="pill l' + ll.level + '">' + ll.label + '</span> ' + yen(c.deltaLoss) + '（本單 ' + yen(c.lossX) + '，連帶 ' + yen(c.deltaLoss - c.lossX) + '）<span class="fm">每張 = 金額 × 日罰款率 × 晚的天數；' + esc(x.job.customer) + ' 的日罰款率 ' + (x.rate * 100).toFixed(2).replace(/\.?0+$/, '') + '%' + (x.job.customer === '甲' ? '（虛擬，非合約罰款）' : '') + '，本單金額 ' + yen(x.amount) + '（示意單價）；等級門檻 ' + fmtN(P.guess.lossLow) + '／' + fmtN(P.guess.lossMid) + ' 【我猜的】</span></dd></div>' +
+      '<div class="arow"><dt>準時風險</dt><dd><span class="pill l' + rk.level + '">' + rk.label + '</span> ' + esc(rk.why.join('；')) + '；要求 ' + U.mdw(x.job.due) + '</dd></div>' +
+      '<div class="arow"><dt>併單建議</dt><dd>' + esc(merge) + '</dd></div>' +
+      (flags.length ? '<div class="arow"><dt>注意</dt><dd>' + flags.map(esc).join('<br>') + '</dd></div>' : '') +
+      '</dl>' +
+      '<details class="basis"><summary>候選位置比較與參數</summary>' + candTable(o, calc, null, false) +
+      '<p class="sub fp">輸入指紋 ' + r.fingerprint + '：同樣的排程、參數、單、時間，一定算出同樣結果。試算時間 ' + r.asOf.label + '，參數版本 p' + calc.pv + '。</p>' + paramLines(P) + '</details>';
+  }
+
+  /* 欄位值顯示 */
+  const showVal = (k, v) => A.st.showVal(k, v);
+
+  Object.assign(A, { $, esc, fmtN, yen, tag, guessTag, simTag, demoTag, statusChip, srcTag, ord, minTxt, toast,
+    rawHTML, rawBlock, rawMeta, prog, timeline, paramLines, candTable, aiPanel, showVal });
+})(window);
+
+/* ===== view-line.js ===== */
+/* 昇嶺電子 單一插單入口 Demo v2 — LINE 端（老闆、業務）
+   全部是「模擬」：沒有連真的 LINE。手機畫面裡只有 LINE 會出現的東西；
+   手機外面的綠色虛線框是 Demo 用的模擬操作。 */
+(function (root) {
+  'use strict';
+  const E = root.Engine, U = E.util, Store = root.Store;
+  const A = root.App;
+  const { esc, fmtN, tag, guessTag, simTag, demoTag, statusChip, ord, minTxt, rawBlock, rawMeta, prog, showVal } = A;
+
+  /* ---------- 手機外框 ---------- */
+  function phone(p, chatHTML, foot, overlay) {
+    return '<div class="phone" role="region" aria-label="模擬 LINE：' + esc(p.name) + ' 的手機">' +
+      '<div class="ph-top"><b>昇嶺插單</b><span class="tag sim">LINE 官方帳號・模擬</span><span class="who">' + esc(p.name) + '</span></div>' +
+      '<div class="ph-chat" data-chat="' + p.id + '">' + chatHTML + '</div>' + foot + (overlay || '') + '</div>';
+  }
+  const oaMsg = (inner, at) => '<div class="msg"><span class="av" aria-hidden="true">昇嶺</span>' + inner + '<span class="tm">' + at + '</span></div>';
+  const bubble = t => '<div class="bub">' + t + '</div>';
+
+  function fieldsDl(o) {
+    const f = o.draft.fields;
+    return '<dt>客戶</dt><dd>' + esc(f.customer.value) + '</dd><dt>機種</dt><dd>' + esc(f.model.value) + '</dd><dt>數量</dt><dd>' + esc(showVal('qty', f.qty.value)) + '</dd>';
+  }
+
+  /* ---------- 一則訊息 ---------- */
+  function msgHTML(m, viewer) {
+    if (m.from === 'me') {
+      return '<div class="msg me"><div class="bub' + (m.failed ? ' failed' : '') + '">' + (m.fwdFrom ? '<span class="fw">轉傳自 ' + esc(m.fwdFrom) + '（示意）</span>' : '') + esc(m.text) +
+        (m.failed ? '<span class="fail">未送出：LINE 斷線（模擬）</span>' : '') + '</div><span class="tm">' + m.at + '</span></div>';
+    }
+    if (m.from === 'sys' && m.kind === 'down') {
+      return '<div class="sysmsg" role="alert"><b>訊息沒有送到官方帳號</b>（LINE 斷線，模擬）。<br>請打電話通知業務，業務會用「網頁備援入口」登錄原文。</div>';
+    }
+    const o = m.order ? ord(m.order) : null;
+    switch (m.kind) {
+      case 'ack':
+        return oaMsg(bubble('已收單 <b>' + esc(m.order) + '</b>。<br>業務確認後由生管試算，可交日會再傳到這裡。<br>請先不要口頭答應交期。'), m.at);
+      case 'bossdue': {
+        const d = o.decision;
+        return oaMsg('<div class="fx"><div class="fx-h">可交日　' + esc(o.id) + '</div><div class="fx-b"><dl>' + fieldsDl(o) +
+          '<dt>客戶要求</dt><dd>' + U.mdw(o.draft.fields.due.value) + '</dd>' +
+          '<dt>可交日</dt><dd><b>' + U.mdw(d.promise) + '</b>（試算完成 ' + esc(d.est.endLabel) + '）</dd>' +
+          '<dt>決定人</dt><dd>' + esc(d.by) + '（' + (d.type === 'adopt' ? '採用 AI 建議' : '調整') + '）</dd>' +
+          '<dt>決定時間</dt><dd>' + esc(d.at) + '</dd>' +
+          '<dt>依據</dt><dd>試算 ' + esc(d.calc) + '</dd>' +
+          '<dt>業務回覆</dt><dd>' + (m.replied ? '<b>已回覆客戶</b> ' + esc(o.reply.at) : '尚未回覆') + '</dd></dl></div></div>', m.at);
+      }
+      case 'new': {
+        const open = o.status === 'received';
+        return oaMsg('<div class="fx"><div class="fx-h g">新單待確認　' + esc(o.id) + '</div><div class="fx-b"><div class="q">' + esc(o.raw.text) + '</div>' +
+          '<p>' + (m.low ? '有 <b>' + m.low + '</b> 欄要你確認或補' : '欄位齊全，確認後送出') + '</p></div>' +
+          '<div class="fx-f"><button type="button" class="fx-btn" data-act="liff" data-page="confirm" data-id="' + o.id + '">' + (open ? '開啟確認頁' : '查看（' + Store.STATUS[o.status] + '）') + '</button></div></div>', m.at);
+      }
+      case 'remind':
+        return oaMsg('<div class="fx"><div class="fx-h o">提醒　' + esc(m.order) + '</div><div class="fx-b"><p>這張已等 ' + minTxt(m.min) + '還沒確認（提醒門檻 ' + guessTag() + '）。</p></div>' +
+          '<div class="fx-f"><button type="button" class="fx-btn" data-act="liff" data-page="confirm" data-id="' + m.order + '">開啟確認頁</button></div></div>', m.at);
+      case 'due': {
+        const d = o.decision;
+        return oaMsg('<div class="fx"><div class="fx-h">可交日已決定　' + esc(o.id) + '</div><div class="fx-b"><dl>' + fieldsDl(o) +
+          '<dt>客戶要求</dt><dd>' + U.mdw(o.draft.fields.due.value) + '</dd><dt>可交日</dt><dd><b>' + U.mdw(d.promise) + '</b></dd>' +
+          '<dt>決定</dt><dd>' + esc(d.by) + '（' + (d.type === 'adopt' ? '採用 AI 建議' : '調整') + '）</dd></dl></div>' +
+          '<div class="fx-f"><button type="button" class="fx-btn" data-act="liff" data-page="reply" data-id="' + o.id + '">開啟回覆草稿</button></div></div>', m.at);
+      }
+      case 'escalate':
+        return oaMsg('<div class="fx"><div class="fx-h r">升級　' + esc(m.order) + '</div><div class="fx-b"><p>生管已 ' + minTxt(m.min) + '沒有決定。</p></div></div>', m.at);
+      case 'unbound':
+        return oaMsg('<div class="fx"><div class="fx-h o">帳號尚未綁定</div><div class="fx-b"><p>你的 LINE 還沒綁定，這則訊息系統不會處理。</p><p>請向管理者索取一次性綁定碼，再按下方按鈕綁定。</p></div>' +
+          '<div class="fx-f"><button type="button" class="fx-btn" data-act="liff" data-page="bind">綁定帳號</button></div></div>', m.at);
+      default:
+        return oaMsg(bubble(esc(m.text || '')), m.at);
+    }
+  }
+  function chatHTML(pid, emptyTxt) {
+    const ms = A.st.S.chats[pid] || [];
+    if (!ms.length) return '<div class="ph-empty">' + emptyTxt + '</div>';
+    return ms.map(m => msgHTML(m)).join('');
+  }
+
+  /* =====================================================================
+     老闆端：只收兩種訊息，沒有任何要操作的東西
+     ===================================================================== */
+  function viewBoss() {
+    const st = A.st, S = st.S;
+    const boss = S.people.find(p => p.role === 'boss');
+    const foot = '<div class="ph-foot">老闆端只收訊息：「已收單」與「可交日」卡片</div>';
+    const sim = '<aside class="panel sim"><div class="ptitle">' + simTag() + ' 老闆在 LINE 轉傳客戶訊息<small>手機外的操作都是 Demo 模擬</small></div><div class="pb stack">' +
+      '<p class="sub">真實情境：老闆在 LINE 長按客戶的訊息 →「轉傳」→ 選官方帳號「昇嶺插單」。這裡用按鈕代替。三筆原文都是編的 ' + tag('demo', '示意') + '。</p>' +
+      '<div class="samples">' + Store.SAMPLES.map(s =>
+        '<div class="sample" style="cursor:default"><b>' + s.label + '</b><span class="tx">' + esc(s.text) + '</span><span class="h">' + esc(s.from) + '（示意）・' + esc(s.hint) + '</span>' +
+        '<span style="grid-column:2"><button type="button" class="btn sm" data-act="fwd" data-k="' + s.key + '"' + (A.ui.busyFwd ? ' disabled' : '') + '>轉傳給官方帳號</button></span></div>').join('') + '</div>' +
+      (S.sim.lineDown ? '<div class="banner err"><b>LINE 斷線中（模擬）。</b>轉傳會失敗，訊息不會建單。到「後台 → LINE 紀錄」可恢復連線。</div>' : '') +
+      '<p class="sub">老闆端沒有可以編輯的欄位，也沒有要按的按鈕；交期一律來自生管試算，老闆不再口頭承諾。</p></div></aside>';
+    return '<div class="end-line">' + phone(boss, chatHTML(boss.id, '還沒有訊息。<br>從右邊（手機版在下方）的模擬面板，轉傳一則客戶訊息給官方帳號。'), foot) + sim + '</div>';
+  }
+
+  /* =====================================================================
+     業務端：LINE 通知 ＋ 從 LINE 開啟的小網頁（LIFF）
+     ===================================================================== */
+  function liffShell(title, body, act) {
+    return '<section class="liff" role="dialog" aria-label="' + esc(title) + '"><div class="liff-h"><b>' + esc(title) + '</b>' + simTag('LIFF 小頁・模擬') +
+      '<button type="button" class="btn sm x" data-act="liff-close">關閉</button></div><div class="liff-b">' + body + '</div>' + (act ? '<div class="liff-act">' + act + '</div>' : '') + '</section>';
+  }
+
+  function fieldEditor(o, k) {
+    const f = o.draft.fields[k]; const v = f.value; const id = 'ed_' + k;
+    const lab = ' aria-label="' + E.FIELD_LABEL[k] + '"';
+    if (k === 'customer') return '<select id="' + id + '" data-field="' + k + '"' + lab + '><option value="">（空白）</option>' + Object.keys(E.TABLES.customers).map(c => '<option' + (v === c ? ' selected' : '') + '>' + c + '</option>').join('') + '</select>';
+    if (k === 'model') return '<select id="' + id + '" data-field="' + k + '"' + lab + '><option value="">（空白）</option>' + E.TABLES.models.map(c => '<option' + (v === c ? ' selected' : '') + '>' + c + '</option>').join('') + '</select>';
+    if (k === 'qty') return '<input id="' + id + '" type="number" min="1" step="1" inputmode="numeric" data-field="' + k + '" value="' + (v == null ? '' : v) + '"' + lab + '>';
+    if (k === 'due') return '<input id="' + id + '" type="date" data-field="' + k + '" value="' + (v || '') + '"' + lab + '>';
+    return '<select id="' + id + '" data-field="' + k + '"' + lab + '><option value="true"' + (v === true ? ' selected' : '') + '>' + (k === 'partChange' ? '要換' : '追加單') + '</option><option value="false"' + (v === false ? ' selected' : '') + '>' + (k === 'partChange' ? '不換' : '一般單') + '</option></select>';
+  }
+
+  function liffConfirm(o) {
+    const st = A.st, ui = A.ui;
+    if (!o) return liffShell('確認新單', '<div class="empty">找不到這張單。</div>');
+    const head = '<div class="row"><b>' + o.id + '</b>' + statusChip(o) + demoTag(o) + '</div>' + prog(o);
+    if (!o.parse) {
+      return liffShell('確認新單', head + '<div class="banner info"><span class="busy"></span>解析中…最久 ' + (st.S.ai.timeoutMs / 1000) + ' 秒，超過就改用規則解析。</div>' + rawBlock(o, []));
+    }
+    const draft = o.status === 'received';
+    const spans = E.FIELD_ORDER.map(k => ({ span: o.parse.fields[k].span, low: draft && st.lowOf(o, k) != null }));
+    const eng = '<div class="engine' + (o.parse.fallback ? ' fallback' : '') + '">' + tag('ai', 'AI') + ' ' + esc(o.parse.status) + '</div>';
+    const failed = o.parse.failed ? '<div class="banner err"><b>解析失敗：</b>原文沒有拆出任何欄位。原文已保存不會遺失；請直接回答下面的追問。</div>' : '';
+    const rows = E.FIELD_ORDER.map(k => {
+      const f = o.draft.fields[k]; const why = draft ? st.lowOf(o, k) : null;
+      const cls = why ? 'low' : f.confirmed ? 'done' : 'ok';
+      const editing = draft && ui.edit[o.id + k];
+      let conf;
+      if (f.confirmed) conf = tag('human', '已確認');
+      else if (f.value == null || f.value === '') conf = '<span class="lowtxt">缺</span>';
+      else conf = '<span class="conf">信心 ' + Math.round(f.conf * 100) + '%</span>';
+      const ev = f.span ? '原文「' + esc(o.raw.text.slice(f.span[0], f.span[1])) + '」；' : '';
+      const val = editing ? fieldEditor(o, k) : '<span class="val">' + esc(showVal(k, f.value)) + '</span>';
+      const edit = draft && !editing && !why ? ' <button type="button" class="btn link" data-act="edit" data-id="' + o.id + '" data-f="' + k + '">改</button>' : '';
+      return '<div class="lf-row ' + cls + '"><span class="lf-k">' + E.FIELD_LABEL[k] + '</span><span class="lf-v">' + val + edit + '</span><span>' + conf + '</span><span class="lf-n">' + ev + esc(f.note || '') + '</span></div>';
+    }).join('');
+    const fu = draft ? st.followups(o) : [];
+    const fuHTML = fu.length ? '<section class="fuq" aria-label="追問"><h4>追問 ' + tag('ai', 'AI') + '<span class="sub">直接回答，答案會填進欄位</span></h4><ol>' + fu.map(q => {
+      const f = o.draft.fields[q.k];
+      let ctl = '';
+      if (q.chips.length) ctl = '<div class="chips">' + q.chips.map(c => '<button type="button" class="chip-btn" data-act="pick" data-id="' + o.id + '" data-f="' + q.k + '" data-v="' + esc(c.v) + '">' + esc(c.l) + '</button>').join('') + '</div>';
+      if (q.input) ctl = '<div class="in"><label class="sr" for="fu_' + q.k + '">' + esc(q.text) + '</label><input id="fu_' + q.k + '" type="' + q.input + '"' + (q.input === 'number' ? ' min="1" step="1" inputmode="numeric" placeholder="片數"' : '') + ' value="' + esc(A.ui.fu[o.id + q.k] || '') + '" data-act-input="fu" data-id="' + o.id + '" data-f="' + q.k + '"><button type="button" class="btn sm" data-act="fu-set" data-id="' + o.id + '" data-f="' + q.k + '">填入</button></div>';
+      const keep = q.why === 'low' && f.value != null && !q.chips.some(c => String(c.v) === String(f.value)) ? '<div class="chips"><button type="button" class="chip-btn" data-act="keep" data-id="' + o.id + '" data-f="' + q.k + '">沿用「' + esc(showVal(q.k, f.value)) + '」</button></div>' : '';
+      return '<li>' + esc(q.text) + (q.why === 'low' ? ' <span class="tag low">低信心</span>' : '') + ctl + keep + '</li>';
+    }).join('') + '</ol></section>' : '';
+    const body = head + eng + failed +
+      '<section><h4 class="sub" style="margin-bottom:4px">原文（唯讀）' + tag('raw', '原文') + '　底線＝AI 取值位置</h4>' + rawBlock(o, spans) + rawMeta(o) + '</section>' +
+      '<section><h4 class="sub" style="margin-bottom:4px">欄位草稿 ' + tag('ai', 'AI') + (draft ? '　信心低於 ' + Math.round(st.S.P.conf.threshold * 100) + '% 標紅' : '　已送出，唯讀') + '</h4><div class="lf">' + rows + '</div></section>' +
+      fuHTML +
+      (function () { var a = draft ? st.anomalies(o) : (o.anomalies || []); return a.length ? '<section class="fuq"><h4>異常提醒 ' + tag('ai', 'AI') + '<span class="sub">只提醒，請業務確認</span></h4><ul>' + a.map(function (x) { return '<li>' + esc(x) + '</li>'; }).join('') + '</ul></section>' : ''; })() +
+      (draft ? '<button type="button" class="btn link" data-act="return" data-id="' + o.id + '" style="align-self:flex-start">這不是插單，退回</button>' : '');
+    let act;
+    if (draft) {
+      const pend = st.pendingFields(o);
+      const why = pend.length ? '還有 ' + pend.length + ' 欄要處理：' + pend.map(p => E.FIELD_LABEL[p.k] + (p.why === 'missing' ? '（缺）' : '（低信心）')).join('、') : '送出後系統會試算，交給生管決定。';
+      act = '<button type="button" class="btn primary" data-act="submit" data-id="' + o.id + '"' + (pend.length ? ' disabled' : '') + '>確認送出</button><p class="why' + (pend.length ? ' warn' : '') + '">' + esc(why) + '</p>';
+    } else {
+      const c = st.latestCalc(o);
+      act = '<p class="why">' + (o.confirm ? esc(o.confirm.by) + ' 已於 ' + esc(o.confirm.at) + ' 確認' : '') + (c ? '；試算 ' + st.calcRef(c) + ' 完成' : '') + '。' +
+        (o.status === 'queued' ? '等生管決定，可交日會傳到 LINE。' : o.status === 'returned' ? '已退回。' : '') + '</p>';
+    }
+    return liffShell('確認新單', body, act);
+  }
+
+  function liffReply(o) {
+    const st = A.st;
+    if (!o) return liffShell('交期回覆', '<div class="empty">找不到這張單。</div>');
+    const head = '<div class="row"><b>' + o.id + '</b>' + statusChip(o) + demoTag(o) + '</div>' + prog(o);
+    const d = st.replyInfo(o);
+    if (!d.calc || d.noDecision) {
+      const why = !d.calc ? '這張還沒有試算紀錄。沒有試算，系統不產生交期草稿。' : '生管還沒決定。決定後可交日會傳到 LINE。';
+      return liffShell('交期回覆', head + '<div class="noreply">' + why + '</div>' + rawBlock(o, []),
+        '<button type="button" class="btn primary" disabled>複製回覆</button><p class="why">' + (!d.calc ? '沒有試算紀錄，不能複製' : '生管還沒決定，不能複製') + '</p>');
+    }
+    const dec = o.decision;
+    let body = head +
+      '<div class="cmpdue"><div><div class="a">客戶要求</div><div class="b">' + U.mdw(d.req) + '</div></div><div class="ar" aria-hidden="true">→</div><div><div class="a">可交日（生管決定）</div><div class="b ' + (d.onTime ? '' : 'lowtxt') + '">' + U.mdw(d.dueDate) + '</div></div></div>' +
+      '<p class="sub">' + (d.onTime ? '趕得上。' : '趕不上，晚 ' + U.workdaysBetween(d.req, d.dueDate) + ' 個工作天。') + '試算預計 ' + esc(d.est.endLabel) + ' 完成' + (o.decision.promiseChanged ? '，生管留了緩衝' : '') + '。</p>' +
+      '<div class="human-block" style="padding:8px 12px;font-size:13px">' + tag('human', '生管決定') + ' ' + esc(dec.by) + '　' + (dec.type === 'adopt' ? '採用 AI 建議' : '調整') + '　' + esc(dec.at) + '<br>依據試算 ' + esc(dec.calc) + (dec.reason ? '<br>原因：' + esc(dec.reason) : '') + '</div>' +
+      '<section class="ai-block"><div class="ptitle">回覆草稿 ' + tag('ai', 'AI') + '<small>日期來自試算，AI 只能改措辭</small></div><div class="pb"><p id="replyTxt" style="white-space:pre-wrap">' + esc(o.reply ? o.reply.text : d.draft) + '</p>' +
+      '<div class="row" style="margin-top:8px"><button type="button" class="btn sm" disabled>AI 改寫措辭</button><span class="why">Demo 沒有連模型；正式版由後端呼叫 OpenAI，改寫後檢查日期、數量、機種沒被改動</span></div></div></section>' +
+      rawBlock(o, []);
+    let act;
+    if (!o.reply) {
+      act = '<button type="button" class="btn primary" data-act="copy" data-id="' + o.id + '">複製回覆</button><p class="why">複製後貼給客戶；系統會記錄交期、時間與試算編號，並通知老闆。</p>';
+    } else {
+      const a = o.actual;
+      body += '<div class="banner info">已回覆：' + esc(o.reply.by) + ' ' + esc(o.reply.at) + '，交期 ' + U.mdw(o.reply.dueDate) + '，試算 ' + esc(o.reply.calc) + '。</div>' +
+        '<section class="panel"><div class="ptitle">回填實際結果<small>出貨後填，用來算試算誤差</small>' + (a && a.sample ? tag('demo', '示意數字') : '') + '</div><div class="pb stack">' +
+        '<div class="fgrid"><div><label class="lb" for="a_ship">實際出貨日</label><input id="a_ship" type="date" value="' + (a ? a.shipDate : d.dueDate) + '"' + (a ? ' disabled' : '') + '></div>' +
+        '<div><label class="lb" for="a_c">額外換線（次）</label><input id="a_c" type="number" min="0" step="1" value="' + (a ? a.changeovers : '') + '"' + (a ? ' disabled' : '') + '></div>' +
+        '<div><label class="lb" for="a_h">額外換線（小時）</label><input id="a_h" type="number" min="0" step="0.01" value="' + (a ? a.hours : '') + '"' + (a ? ' disabled' : '') + '></div></div>' +
+        '<p class="sub">預估：額外換線 ' + d.est.extraC + ' 次 / ' + d.est.extraH.toFixed(2) + ' h' + (a ? '；誤差 ' + (d.est.extraH > 0 ? Math.round(Math.abs(a.hours - d.est.extraH) / d.est.extraH * 100) + '%（目標 ±20%【我猜的】）' : '—（預估為 0）') : '') + '</p></div></section>';
+      act = a ? '<p class="why">已回填（' + esc(a.at) + '）。這張單完成。</p>'
+        : '<button type="button" class="btn primary" data-act="actual-save" data-id="' + o.id + '">儲存回填</button><div class="row"><button type="button" class="btn sm" data-act="actual-sample" data-id="' + o.id + '">帶入示意數字</button><span class="why">三欄都要填</span></div>';
+    }
+    return liffShell('交期回覆', body, act);
+  }
+
+  function liffList(p) {
+    const st = A.st;
+    const mine = st.S.orders.filter(o => o.status !== 'returned');
+    const grp = (t, list, page) => '<section><h4 class="sub" style="margin-bottom:4px">' + t + '（' + list.length + '）</h4>' + (list.length ? '<ul class="list lf">' + list.map(o => {
+      const tm = st.timerState(o);
+      return '<li><button type="button" class="item" data-act="liff" data-page="' + page + '" data-id="' + o.id + '"><span class="l1"><b>' + o.id + '</b>' + statusChip(o) + demoTag(o) + (tm ? '<span class="wait l' + tm.level + '">等 ' + minTxt(tm.w) + '</span>' : '') + '</span><span class="l2">' + esc(o.raw.text) + '</span></button></li>';
+    }).join('') + '</ul>' : '<p class="sub">沒有。</p>') + '</section>';
+    return liffShell('我的待辦', grp('待確認', mine.filter(o => o.status === 'received'), 'confirm') + grp('待回覆客戶', mine.filter(o => o.status === 'decided'), 'reply') +
+      grp('待回填實際結果', mine.filter(o => o.status === 'replied'), 'reply') + '<p class="sub">清單依單排列，只看單的狀態。</p>');
+  }
+
+  function liffBind(p) {
+    if (p.status === 'bound') return liffShell('綁定帳號', '<div class="banner info">你已綁定為「' + esc(p.name) + '」（' + Store.ROLE[p.role] + '）。</div>');
+    return liffShell('綁定帳號',
+      '<p>輸入管理者給你的一次性綁定碼。按下綁定時，系統會用 LINE Login 取得你的 LINE 使用者 ID，和後台的人員資料對上。</p>' +
+      '<div><label class="lb" for="bindCode">綁定碼</label><input id="bindCode" type="text" autocomplete="off" value="' + esc(A.ui.bindCode) + '" data-act-input="bindCode" placeholder="例：K7Q2-9F"></div>' +
+      '<p class="sub">Demo：' + esc(p.name) + ' 的綁定碼是 <span class="code">' + esc(p.code) + '</span>（在「後台 → 人員與綁定」看得到）。</p>',
+      '<button type="button" class="btn primary" data-act="bind" id="btnBind"' + (A.ui.bindCode.trim() ? '' : ' disabled') + '>綁定</button><p class="why" id="bindWhy">' + (A.ui.bindCode.trim() ? '綁定後，新單通知會傳到這個 LINE' : '先輸入綁定碼') + '</p>');
+  }
+
+  function viewSales() {
+    const st = A.st, S = st.S, ui = A.ui;
+    const p = st.person(ui.salesId);
+    let overlay = '';
+    if (ui.liff) {
+      const o = ui.liff.id ? ord(ui.liff.id) : null;
+      if (p.status !== 'bound' && ui.liff.page !== 'bind') ui.liff = { page: 'bind' };
+      overlay = ui.liff.page === 'confirm' ? liffConfirm(o) : ui.liff.page === 'reply' ? liffReply(o) : ui.liff.page === 'list' ? liffList(p) : liffBind(p);
+    }
+    const foot = p.status === 'bound'
+      ? '<div class="ph-menu"><span class="lbl">圖文選單</span><button type="button" data-act="liff" data-page="list">我的待辦</button><button type="button" data-act="liff" data-page="bind">帳號</button></div>'
+      : '<div class="ph-menu"><span class="lbl">圖文選單</span><button type="button" data-act="liff" data-page="bind">綁定帳號</button><button type="button" data-act="unbound-say">傳一則訊息</button></div>';
+    const empty = p.status === 'bound' ? '還沒有通知。<br>老闆轉傳客戶訊息後，新單通知會出現在這裡。' : '這個 LINE 還沒綁定。<br>先傳一則訊息試試，或直接按下方「綁定帳號」。';
+    const people = st.S.people.filter(x => x.role === 'sales');
+    const waiting = S.orders.filter(o => o.status === 'received' && o.parse);
+    const sim = '<aside class="stack">' +
+      (S.sim.lineDown ? '<div class="banner err" role="alert"><b>LINE 斷線中（模擬）。</b>新單通知暫時收不到，請改用下方「網頁備援入口」。連線恢復後，失敗的通知會自動補送。</div>' : '') +
+      '<section class="panel sim"><div class="ptitle">' + simTag() + ' 換一位業務<small>每位業務只看到自己的 LINE</small></div><div class="pb stack">' +
+      '<div class="seg" role="radiogroup" aria-label="業務">' + people.map(x => '<label><input type="radio" name="salesId" value="' + x.id + '" data-act-change="salesId"' + (x.id === ui.salesId ? ' checked' : '') + '><span>' + esc(x.name) + '（' + (x.status === 'bound' ? '已綁定' : '未綁定') + '）</span></label>').join('') + '</div>' +
+      '<p class="sub">「業務 B」還沒綁定：可以示範未綁定的訊息不處理，以及用綁定碼綁定。</p></div></section>' +
+      '<section class="panel"><div class="ptitle">網頁備援入口 ' + tag('raw', '原文') + '<small>LINE 故障時用</small></div><div class="pb stack">' +
+      '<p class="sub">電話或口頭收到、或 LINE 斷線時，把原話照打一行貼在這裡。貼上後一樣解析、一樣要確認，原文一樣不能改。</p>' +
+      '<div class="seg" role="radiogroup" aria-label="來源">' + ['電話', '口頭', 'LINE'].map(k => '<label><input type="radio" name="webSrc" value="' + k + '" data-act-change="webSrc"' + (ui.web.source === k ? ' checked' : '') + '><span>' + (k === 'LINE' ? 'LINE（斷線補登）' : k) + '</span></label>').join('') + '</div>' +
+      '<div><label class="lb" for="webText">原文</label><textarea id="webText" rows="3" data-act-input="webText" placeholder="例：丙的 C3 加 600片，週四要，零件不變">' + esc(ui.web.text) + '</textarea></div>' +
+      '<div class="row"><button type="button" class="btn" id="btnWeb" data-act="web-intake"' + (ui.web.text.trim() && p.status === 'bound' ? '' : ' disabled') + '>登錄原文</button><span class="why" id="webWhy">' + (p.status !== 'bound' ? '未綁定的人員不能登錄' : ui.web.text.trim() ? '登錄後到「我的待辦」確認' : '先貼上原文') + '</span></div>' +
+      (waiting.length ? '<p class="sub">待確認：' + waiting.map(o => '<button type="button" class="btn link" data-act="liff" data-page="confirm" data-id="' + o.id + '">' + o.id + '</button>').join(' ') + '</p>' : '') +
+      '</div></section></aside>';
+    return '<div class="end-line">' + phone(p, chatHTML(p.id, empty), foot, overlay) + sim + '</div>';
+  }
+
+  Object.assign(A, { viewBoss, viewSales });
+})(window);
+
+/* ===== view-desk.js ===== */
+/* 昇嶺電子 單一插單入口 Demo v2 — 電腦網頁端（生管、後台）
+   看板與指標只顯示單與機台，不顯示個人績效。 */
+(function (root) {
+  'use strict';
+  const E = root.Engine, U = E.util, Store = root.Store;
+  const A = root.App;
+  const { esc, fmtN, yen, tag, guessTag, simTag, demoTag, statusChip, srcTag, ord, minTxt, rawBlock, rawMeta, prog, timeline, candTable, aiPanel, showVal } = A;
+
+  /* =====================================================================
+     生管：待處理清單（依等待時間）→ 一行結論 → 採用或調整
+     ===================================================================== */
+  function curSchedule() {
+    const st = A.st, S = st.S, now = st.stamp();
+    const cal = E.makeCal(now.date, S.P);
+    const nd = U.dow(now.date) === 0 ? U.nextWork(now.date) : now.date;
+    const p0 = cal.pos(nd, U.dow(now.date) === 0 ? S.P.guess.dayStart : now.hour);
+    return { cal, rows: E.runSeq(S.queue, p0, S.P, cal) };
+  }
+
+  function viewPlanner() {
+    const st = A.st, S = st.S, ui = A.ui;
+    const pend = S.orders.filter(o => o.status === 'queued').sort((a, b) => st.timerState(b).w - st.timerState(a).w);
+    const done = S.orders.filter(o => o.calcs.length && o.status !== 'queued' && o.status !== 'returned');
+    const head = '<div class="ph"><h1>生管看板</h1>' + tag('human', '生管') + '<span class="sub">電腦網頁</span></div>' +
+      '<p class="lede">左邊是待決定的單，等最久的排最上面。每張單先看一行結論，要看依據再展開。看板只顯示單與機台，不顯示個人。</p>' +
+      '<p class="lede">換線時間（排程用）：' + st.estimateChangeover().hours.toFixed(2) + ' 小時／次・' + st.estimateChangeover().label + '。試算已用這個值；現行排程固定抓 ' + S.P.data.sched05 + ' 小時／線／天，實際約 ' + S.P.data.actualPerLineDay + '。</p>';
+    let sel = ord(ui.sel);
+    if (!sel || !sel.calcs.length || sel.status === 'returned') sel = pend[0] || done[0] || null;
+    if (sel) ui.sel = sel.id;
+
+    const item = o => {
+      const sm = st.summary(o); const tm = st.timerState(o);
+      const w = tm ? '<span class="wait l' + tm.level + '">' + (tm.level === 2 ? '已升級・' : tm.level === 1 ? '逾時・' : '') + '等 ' + minTxt(tm.w) + '</span>' : '';
+      return '<button type="button" class="pl-item" data-act="sel" data-id="' + o.id + '"' + (sel && sel.id === o.id ? ' aria-current="true"' : '') + '><span class="l1"><b>' + o.id + '</b>' + statusChip(o) + demoTag(o) + w + '</span>' +
+        (o.status === 'queued' && sm ? '<span class="sum">' + esc(sm.text) + '</span>' : o.decision ? '<span class="sub">' + esc(o.decision.by) + ' ' + (o.decision.type === 'adopt' ? '採用' : '調整') + '，排在 ' + esc(o.decision.afterId) + ' 之後</span>' : '') + '</button>';
+    };
+    const list = '<nav class="panel pl-list" aria-label="單據清單"><div class="grp">待決定（' + pend.length + '）・依等待時間</div>' +
+      (pend.length ? pend.map(item).join('') : '<div class="pb sub">沒有待決定的單。</div>') +
+      '<div class="grp">已決定（' + done.length + '）</div>' + (done.length ? done.map(item).join('') : '<div class="pb sub">還沒有。</div>') + '</nav>';
+
+    let detail, tl;
+    if (!sel) {
+      detail = '<section class="panel"><div class="pb"><div class="empty">還沒有送來的單。<br>老闆在 LINE 轉傳、業務在 LINE 確認送出之後，單會出現在這裡。</div></div></section>';
+    } else {
+      detail = ticket(sel);
+    }
+    if (sel && sel.status === 'queued') {
+      const calc = st.latestCalc(sel), r = calc.result; const adj = ui.adj[sel.id] || {};
+      const k = adj.open && adj.k != null ? adj.k : r.cands[r.best].k; const c = r.cands.find(z => z.k === k);
+      tl = '<div class="ptitle">排程預覽<small>' + sel.id + ' 排在 ' + c.afterId + ' 之後' + (adj.open && adj.k != null ? '（調整中）' : '（AI 建議）') + '</small></div>' + timeline(c.rows, r.cal, sel.id);
+    } else {
+      const cs = curSchedule();
+      tl = '<div class="ptitle">現行排程 ' + tag('demo', '示意') + '<small>Q-01～Q-07 是示意佇列</small></div>' + timeline(cs.rows, cs.cal, sel ? sel.id : '');
+    }
+    const side = '<aside class="pl-side stack"><div class="panel">' + tl + '</div>' +
+      '<p class="sub">每天可排小時由九月 (760＋133)÷26 推算，4 線合計。<b>插件站是瓶頸，試算目前未納入</b>（站數與班次資料未提供）。</p></aside>';
+    return head + '<div class="pl">' + list + '<div class="pl-detail-wrap">' + detail + '</div>' + side + '</div>';
+  }
+
+  function ticket(o) {
+    const st = A.st, ui = A.ui;
+    const calc = st.latestCalc(o); const r = calc.result; const sm = st.summary(o);
+    const f = o.draft.fields;
+    const chg = k => o.confirm && o.confirm.changes.some(c => c.field === k) ? '<span class="chg">業務改過</span>' : '';
+    const fl = E.FIELD_ORDER.map(k => '<tr><th scope="row">' + E.FIELD_LABEL[k] + '</th><td>' + esc(showVal(k, f[k].value)) + chg(k) + '</td></tr>').join('');
+    const adj = ui.adj[o.id] || {}; const open = !!adj.open;
+    const selK = adj.k != null ? adj.k : r.cands[r.best].k;
+    const rsn = ui.reason[o.id] || '';
+    const tm = st.timerState(o);
+    let act;
+    if (o.status === 'queued') {
+      // 回給客戶的期限：預填試算完成日，可以訂晚一點留緩衝，不能更早；改了要寫原因
+      const cSel = r.cands.find(z => z.k === (open ? selK : r.cands[r.best].k)) || r.cands[r.best];
+      const minD = cSel.endAt.date;
+      let pr = ui.promise[o.id] || minD; if (pr < minD) { pr = minD; ui.promise[o.id] = minD; }
+      const changed = pr !== minD;
+      const needR = open || changed; const okR = rsn.trim().length >= 4;
+      const promiseRow = '<div><label class="lb" for="pr-' + o.id + '">回給客戶的期限 ' + tag('human', '生管決定') + '</label><div class="row"><input id="pr-' + o.id + '" type="date" min="' + minD + '" value="' + pr + '" data-act-change="promise" data-id="' + o.id + '" style="width:auto">' +
+        '<span class="sub">試算完成 ' + esc(cSel.endAt.label) + '。可以訂晚一點留出貨緩衝，不能更早' + (changed ? '；比完成日晚 ' + U.workdaysBetween(minD, pr) + ' 個工作天' : '') + '</span></div></div>';
+      const reasonBox = needR ? '<div><label class="lb" for="rsn-' + o.id + '">' + (open ? '調整原因' : '改期限的原因') + '（必填，至少 4 個字）</label><textarea id="rsn-' + o.id + '" rows="2" data-act-input="reason" data-id="' + o.id + '" placeholder="' + (open ? '例：該線明天有治具檢修，先排後面' : '例：出貨前要多一天檢驗') + '">' + esc(rsn) + '</textarea></div>' : '';
+      const why = '<span class="why' + (needR && !okR ? ' warn' : '') + '" id="why-' + o.id + '">' + (needR && !okR ? '沒填原因不能儲存' : '寫進稽核，期限推到業務與老闆的 LINE') + '</span>';
+      if (!open) {
+        act = '<section class="stack">' + promiseRow + reasonBox + '<div class="dec-act"><button type="button" class="btn primary" id="save-' + o.id + '" data-act="adopt" data-id="' + o.id + '"' + (needR && !okR ? ' disabled' : '') + '>採用建議</button><button type="button" class="btn" data-act="adjust-open" data-id="' + o.id + '">調整位置</button>' + why + '</div>' +
+          '<p class="sub">AI 只給建議，由你決定。</p></section>';
+      } else {
+        act = '<section class="human-block stack" style="padding:12px 14px"><h4>調整：選別的位置，並寫原因 ' + tag('human', '生管決定') + '</h4>' + candTable(o, calc, selK, true) + promiseRow + reasonBox +
+          '<div class="dec-act"><button type="button" class="btn primary" id="save-' + o.id + '" data-act="adjust-save" data-id="' + o.id + '"' + (!okR ? ' disabled' : '') + '>儲存調整</button><button type="button" class="btn link" data-act="adjust-open" data-id="' + o.id + '">取消，回到建議</button>' + why + '</div></section>';
+      }
+    } else {
+      const d = o.decision;
+      const stale = d && d.calc !== st.calcRef(calc);
+      act = d ? '<section class="human-block" style="padding:12px 14px"><div class="row">' + tag('human', '生管決定') + '<b>' + (d.type === 'adopt' ? '採用 AI 建議' : '調整') + '</b><span class="sub">' + esc(d.by) + '，' + esc(d.at) + '，依據 ' + esc(d.calc) + '</span></div>' +
+        '<div style="margin-top:4px">實際插入：排在 ' + esc(d.afterId) + ' 之後，' + esc(d.actualSlot) + '</div>' + (d.explain ? '<div>解釋：' + esc(d.explain) + '</div>' : '') + (d.reason ? '<div>原因：' + esc(d.reason) + (d.reasonCat ? '（分類：' + esc(d.reasonCat) + '）' : '') + '</div>' : '') +
+        '<div>回給客戶的期限：<b>' + U.mdw(d.promise) + '</b>（試算完成 ' + esc(d.est.endLabel) + '）</div>' +
+        '<div class="sub" style="margin-top:4px">期限已推到業務與老闆的 LINE（模擬）。' + (o.reply ? '業務已於 ' + esc(o.reply.at) + ' 回覆客戶。' : '業務尚未回覆客戶。') + '</div>' +
+        (stale ? '<div class="why warn">之後排程或參數有變動，最新試算是 ' + esc(st.calcRef(calc)) + '，這個決定依據舊版。</div>' : '') + '</section>' : '';
+    }
+    return '<article class="panel pl-detail"><div class="t-head"><b>' + o.id + '</b>' + statusChip(o) + demoTag(o) + '<span class="sub">試算 ' + esc(st.calcRef(calc)) + (calc.rev > 1 ? '（' + esc(calc.reason) + '）' : '') + '</span>' +
+      (tm && tm.level ? '<span class="wait l' + tm.level + '">' + (tm.level === 2 ? '已升級給生管主管' : '已逾時') + '・等 ' + minTxt(tm.w) + '</span>' : '') + '</div><div class="pb">' +
+      prog(o) +
+      (o.status === 'queued' ? '<div class="concl">' + tag('ai', 'AI 結論') + ' ' + esc(sm.text) + '<span class="sub">' + esc(sm.explain.ok ? '解釋：' + sm.explain.text : '解釋未通過數字檢查，只顯示試算表') + '</span><span class="sub">準時風險 ' + sm.risk.label + '（' + esc(sm.risk.why.join('；')) + '）；罰款等級 ' + sm.loss.label + '</span></div>' : '') +
+      act +
+      '<details class="more"' + (open ? ' open' : '') + '><summary>看原單與試算依據</summary><div class="t-grid">' +
+      '<section class="t-orig"><h4>原單原樣 ' + tag('raw', '原文') + '<small class="sub">不可修改</small></h4>' + rawBlock(o, []) + rawMeta(o) +
+      '<h4 style="margin-top:14px">確認後的欄位 ' + tag('human', '業務確認') + '</h4><table class="mini"><tbody>' + fl + '<tr><th scope="row">確認</th><td>' + esc(o.confirm.by) + '　' + esc(o.confirm.at) + '</td></tr></tbody></table></section>' +
+      '<section class="t-ai"><h4>AI 分析 ' + tag('ai', 'AI') + '<small>只給建議，由生管決定</small></h4>' + aiPanel(o, calc) + '</section></div></details>' +
+      '</div></article>';
+  }
+
+  /* =====================================================================
+     後台（管理者）
+     ===================================================================== */
+  const TABS = [['people', '人員與綁定'], ['params', '參數'], ['master', '客戶・機種・單價'], ['audit', '稽核紀錄'], ['metrics', '指標'], ['line', 'LINE 紀錄']];
+  const GUESS_FIELDS = [
+    ['wA', '甲的虛擬權重（%／天）', '範圍 1–1.5，需老闆確認', 'number', { step: 0.05, min: 0, max: 10 }],
+    ['maxDelayA', '甲最多延後（天）', '超過就提醒交老闆決定', 'number', { step: 1, min: 0, max: 10 }],
+    ['slot1', '固定插單時段 1', '新單只在固定時段排入', 'time'],
+    ['slot2', '固定插單時段 2', '留空表示只用一個時段', 'time'],
+    ['merge', '同機種合併', '相鄰同機種免一次換線', 'check'],
+    ['freezeH', '凍結（小時）', '這段時間內已排好的單不重排', 'number', { step: 1, min: 0, max: 240 }],
+    ['partExtra', '換零件額外換線（次）', '', 'number', { step: 1, min: 0, max: 3 }],
+    ['nCand', '比較幾個插入位置', '', 'number', { step: 1, min: 2, max: 8 }],
+    ['dayStart', '工作日開始（點）', '一天長度由九月資料推算', 'number', { step: 0.5, min: 5, max: 11 }],
+    ['lossLow', '罰款「低」上限（NT$）', '', 'number', { step: 500, min: 0 }],
+    ['lossMid', '罰款「中」上限（NT$）', '', 'number', { step: 500, min: 0 }]
+  ];
+  const OPS_FIELDS = [
+    ['salesRemindMin', '業務多久沒確認就提醒（分鐘）', '推播給業務'],
+    ['plannerRemindMin', '生管多久沒決定就提醒（分鐘）', '在生管看板標示'],
+    ['plannerEscalateMin', '生管多久沒決定就升級（分鐘）', '推播給生管主管，不推給老闆']
+  ];
+
+  function qrSVG(code) {
+    // 示意用的方塊圖，不是真的 QR Code
+    const h = A.st && root.Engine.util.fnv(code); let bits = '';
+    for (let i = 0; i < 8; i++) bits += parseInt(root.Engine.util.fnv(code + i), 16).toString(2).padStart(32, '0').slice(0, 8);
+    let rects = '';
+    for (let y = 0; y < 8; y++) for (let x = 0; x < 8; x++) if (bits[y * 8 + x] === '1') rects += '<rect x="' + (x + 1) + '" y="' + (y + 1) + '" width="1" height="1"/>';
+    return '<svg class="qr" viewBox="0 0 10 10" role="img" aria-label="綁定 QR（示意，不是真的 QR Code）" data-h="' + h + '"><rect width="10" height="10" fill="#fff"/><g fill="#14212E">' + rects + '</g></svg>';
+  }
+
+  function adPeople() {
+    const st = A.st, S = st.S;
+    const stTxt = p => p.status === 'bound' ? tag('human', '已綁定') : p.status === 'unbound' ? '<span class="tag low">未綁定</span>' : '<span class="tag data">電腦網頁</span>';
+    return '<section class="panel"><div class="ptitle">人員與角色<small>LINE 使用者 ID 都是模擬值</small></div><div class="scroll-x"><table class="tbl"><thead><tr><th>人員</th><th>角色</th><th>載體</th><th>狀態</th><th>LINE 使用者 ID</th><th>綁定時間</th><th>一次性綁定碼</th><th></th></tr></thead><tbody>' +
+      S.people.map(p => '<tr><td><b>' + esc(p.name) + '</b></td><td>' + Store.ROLE[p.role] + '</td><td>' + ({ boss: 'LINE', sales: 'LINE＋小網頁', lead: 'LINE（只收升級）', planner: '電腦網頁', admin: '電腦網頁' }[p.role]) + '</td><td>' + stTxt(p) + '</td>' +
+        '<td class="mono">' + esc(p.lineUserId || '—') + '</td><td>' + esc(p.boundAt || '—') + '</td>' +
+        '<td>' + (p.status === 'unbound' ? '<div class="row" style="gap:8px">' + qrSVG(p.code) + '<span class="code">' + esc(p.code) + '</span></div>' : '—') + '</td>' +
+        '<td>' + (p.status === 'bound' ? '<button type="button" class="btn sm" data-act="unbind" data-pid="' + p.id + '">解除綁定</button>' : p.status === 'unbound' ? '<button type="button" class="btn sm" data-act="regen" data-pid="' + p.id + '">重新產生</button>' : '') + '</td></tr>').join('') +
+      '</tbody></table></div></section>' +
+      '<div class="banner info" style="margin-top:14px">綁定流程：管理者在這裡建人員、產生一次性綁定碼或 QR → 本人加官方帳號好友 → 在 LIFF 小頁輸入綁定碼 → 系統用 LINE Login 取得使用者 ID 對上人員。' +
+      '<br>官方帳號（Messaging API）與 LIFF（LINE Login channel）要放在<b>同一個 provider</b>，使用者 ID 才一致。只用一對一聊天，不用群組，才分得清誰說了什麼。未綁定者的訊息一律不處理，並回覆引導。</div>' +
+      '<p class="sub" style="margin-top:10px">QR 圖是示意方塊，不是真的 QR Code。新增人員在正式版做，Demo 固定 6 位。</p>';
+  }
+
+  function adParams() {
+    const st = A.st, S = st.S, G = S.P.guess;
+    const val = k => k === 'slot1' ? (G.slots[0] || '') : k === 'slot2' ? (G.slots[1] || '') : G[k];
+    const row = f => {
+      const [k, nm, sub, type, attr] = f; const id = 'g_' + k; const v = val(k);
+      const inp = type === 'check' ? '<input id="' + id + '" type="checkbox"' + (v ? ' checked' : '') + '>' : '<input id="' + id + '" type="' + type + '" value="' + esc(v) + '"' + (attr ? Object.entries(attr).map(([a, x]) => ' ' + a + '="' + x + '"').join('') : '') + '>';
+      return '<div class="srow guess"><label class="nm" for="' + id + '">' + nm + ' ' + guessTag() + (sub ? '<small>' + sub + '</small>' : '') + '</label>' + inp + '</div>';
+    };
+    const waiting = S.orders.filter(o => o.status === 'queued').length;
+    return '<section class="panel"><div class="ptitle">推算用的假設 ' + guessTag() + '<small>改了，待生管決定的單會重新試算</small></div><div class="pb">' + GUESS_FIELDS.map(row).join('') + '</div></section>' +
+      '<section class="panel" style="margin-top:16px"><div class="ptitle">逾時提醒 ' + guessTag() + '<small>資料沒有時長，先用猜的；不影響試算</small></div><div class="pb">' +
+      OPS_FIELDS.map(([k, nm, sub]) => '<div class="srow guess"><label class="nm" for="o_' + k + '">' + nm + ' ' + guessTag() + '<small>' + sub + '</small></label><input id="o_' + k + '" type="number" min="5" step="5" value="' + S.ops[k] + '"></div>').join('') + '</div></section>' +
+      '<section class="panel" style="margin-top:16px"><div class="ptitle">AI 解析 ' + tag('ai', 'AI') + '<small>LLM 只負責文字→欄位、追問、回覆措辭；試算不用 LLM</small></div><div class="pb">' +
+      '<div class="srow"><label class="nm" for="ai_mode">解析模式<small>Demo 沒有連模型。正式版由後端呼叫 OpenAI，失敗或超過 8 秒退回規則</small></label><select id="ai_mode">' +
+      [['rule', '規則解析'], ['sim-fail', '模擬模型失敗 → 退回規則'], ['sim-timeout', '模擬模型逾時 8 秒 → 退回規則']].map(([v, l]) => '<option value="' + v + '"' + (S.ai.mode === v ? ' selected' : '') + '>' + l + '</option>').join('') + '</select></div></div></section>' +
+      '<section class="panel" style="margin-top:16px"><div class="ptitle">還沒定的事 ' + tag('guess', '【未定】') + '<small>先留位置，不影響試算</small></div><div class="pb">' +
+      '<div class="srow"><label class="nm" for="p_erp">是否接 ERP</label><select id="p_erp">' + ['未定', '接', '不接'].map(v => '<option' + (S.pending.erp === v ? ' selected' : '') + '>' + v + '</option>').join('') + '</select></div>' +
+      '<div class="srow"><label class="nm" for="p_stations">插件站數<small>插件站是瓶頸，資料未提供，未納入試算</small></label><input id="p_stations" type="text" value="' + esc(S.pending.stations) + '" placeholder="待提供"></div>' +
+      '<div class="srow"><label class="nm" for="p_shifts">班次<small>未納入試算</small></label><input id="p_shifts" type="text" value="' + esc(S.pending.shifts) + '" placeholder="待提供"></div></div></section>' +
+      '<section class="panel" style="margin-top:16px"><div class="ptitle">個案資料 ' + tag('data', '資料') + '<small>來自個案，只看不改</small></div><div class="pb">' +
+      [['SMT 產能', S.P.data.rate + ' 片／小時'], ['換線（排程用）', A.st.estimateChangeover().hours.toFixed(2) + ' 小時／次・' + A.st.estimateChangeover().label], ['現行排程抓的換線', S.P.data.sched05 + ' 小時／線／天（實際約 ' + S.P.data.actualPerLineDay + '）'], ['罰款', '乙 2%／天、丙 1%／天、甲無'], ['每天可排小時', S.P.data.poolHoursPerDay.toFixed(2) + ' 小時（九月 (760＋133)÷26，4 線合計）']]
+        .map(r => '<div class="srow locked"><span class="nm">' + r[0] + '</span><span style="font-size:13px">' + r[1] + '</span></div>').join('') + '</div></section>' +
+      '<div class="row" style="margin-top:16px;position:sticky;bottom:0;background:var(--bg);padding:10px 0"><button type="button" class="btn primary" data-act="apply-params">套用並記錄</button><button type="button" class="btn" data-act="reset-params">還原預設值</button>' +
+      '<span class="why">逐項寫進稽核，產生新的參數版本 p' + (st.curPver() + 1) + '；' + (waiting ? '待決定的 ' + waiting + ' 張單會重新試算' : '目前沒有待決定的單') + '</span></div>' +
+      '<section class="panel" style="margin-top:16px"><div class="ptitle">參數版本<small>每張試算都記錄當時用哪一版</small></div><div class="pb"><ol class="pv">' +
+      S.pver.slice().reverse().map(v => '<li><b>p' + v.v + '</b>　' + esc(v.at) + '　' + esc(v.by) + '：' + esc(v.changes.join('；')) + '</li>').join('') + '</ol></div></section>';
+  }
+  function readParams() {
+    const $ = A.$; const g = {};
+    GUESS_FIELDS.forEach(([k, , , type]) => { const el = $('#g_' + k); g[k] = type === 'check' ? el.checked : type === 'number' ? Number(el.value) : el.value; });
+    const slots = [g.slot1, g.slot2].filter(x => /^\d{1,2}:\d{2}$/.test(x || '')); delete g.slot1; delete g.slot2; g.slots = slots;
+    const ops = {}; OPS_FIELDS.forEach(([k]) => { ops[k] = Number($('#o_' + k).value); });
+    return { guess: g, ops, ai: { mode: $('#ai_mode').value }, pending: { erp: $('#p_erp').value, stations: $('#p_stations').value.trim(), shifts: $('#p_shifts').value.trim() } };
+  }
+
+  function adMaster() {
+    const S = A.st.S;
+    return '<section class="panel"><div class="ptitle">客戶<small>罰款來自個案合約；甲的權重是猜的</small></div><div class="scroll-x"><table class="tbl"><thead><tr><th>客戶</th><th>別名（解析用）</th><th>日罰款率</th></tr></thead><tbody>' +
+      Object.entries(E.TABLES.customers).map(([k, al]) => '<tr><td><b>' + k + '</b></td><td>' + esc(al.join('、')) + '</td><td>' + (k === '甲' ? '無合約罰款；虛擬權重 ' + S.P.guess.wA + '%／天 ' + guessTag() : (S.P.data.penalty[k] * 100) + '%／天 ' + tag('data', '個案合約')) + '</td></tr>').join('') + '</tbody></table></div></section>' +
+      '<section class="panel" style="margin-top:16px"><div class="ptitle">機種與單價 ' + tag('data', '個案平均') + '<small>個案只給平均每片約 1,200 元，各機種單價未提供；金額只用來比較晚一天的損失，請換成報價</small></div><div class="pb">' +
+      E.TABLES.models.map(m => '<div class="srow"><label class="nm" for="pr_' + m + '">' + m + '（元／片）</label><input id="pr_' + m + '" type="number" min="0" step="1" value="' + S.P.prices[m] + '"></div>').join('') +
+      '<div class="row" style="margin-top:10px"><button type="button" class="btn primary" data-act="apply-prices">儲存單價並記錄</button><span class="why">改單價會產生新參數版本，待決定的單重新試算</span></div></div></section>' +
+      '<section class="panel" style="margin-top:16px"><div class="ptitle">排程佇列 ' + tag('demo', '示意') + '<small>Q-01～Q-07 要換成真資料；生管採用後新單會插進來</small></div><div class="scroll-x"><table class="tbl"><thead><tr><th>單號</th><th>客戶</th><th>機種</th><th class="n">數量</th><th>交期</th></tr></thead><tbody>' +
+      S.queue.map(q => '<tr><td>' + esc(q.id) + (q.running ? ' <span class="sub">生產中</span>' : '') + (q.fromOrder ? ' ' + tag('human', '插單') : '') + '</td><td>' + q.customer + '</td><td>' + q.model + '</td><td class="n">' + fmtN(q.qty) + '</td><td>' + U.mdw(q.due) + '</td></tr>').join('') + '</tbody></table></div></section>';
+  }
+
+  function adAudit() {
+    const st = A.st, f = A.ui.auditFilter;
+    const all = st.auditList();
+    const au = all.filter(a => f === 'all' || (f === 'decide' && a.role === 'planner') || (f === 'sales' && a.role === 'sales') || (f === 'param' && /參數/.test(a.action)) || (f === 'line' && /webhook|綁定|未綁定|LINE|推播|訊息/.test(a.action)) || (f === 'ai' && (a.role === 'ai' || a.role === 'system')));
+    const who = a => a.role === 'ai' ? tag('ai', 'AI') : a.role === 'system' ? tag('data', '系統') : tag('human', esc(a.who));
+    return '<section class="panel"><div class="ptitle">稽核紀錄<small>只能追加，不能修改或刪除；最新在上，共 ' + all.length + ' 筆</small><span class="sp"></span><label class="sr" for="afilter">篩選</label><select id="afilter" data-act-change="afilter" style="width:auto">' +
+      [['all', '全部'], ['decide', '生管決定'], ['sales', '業務確認與回覆'], ['param', '參數變更'], ['line', 'LINE 與綁定'], ['ai', 'AI／系統']].map(([v, l]) => '<option value="' + v + '"' + (f === v ? ' selected' : '') + '>' + l + '</option>').join('') + '</select></div>' +
+      '<div class="scroll-x" style="max-height:560px;overflow:auto"><table class="audit"><thead><tr><th>#</th><th>時間</th><th>誰</th><th>動作</th><th>單號</th><th>內容</th></tr></thead><tbody>' +
+      (au.length ? au.map(a => '<tr><td class="t">' + a.seq + '</td><td class="t">' + esc(a.t) + '</td><td class="who">' + who(a) + '</td><td>' + esc(a.action) + '</td><td>' + esc(a.order) + '</td><td>' + esc(a.detail) + '</td></tr>').join('') : '<tr><td colspan="6" class="sub">沒有符合的紀錄。</td></tr>') +
+      '</tbody></table></div></section>';
+  }
+
+  function adMetrics() {
+    const st = A.st, S = st.S, m = st.metrics(), D = S.P.data;
+    const kpi = (t, big, small, rows) => '<div class="kpi"><h3>' + t + '</h3><div class="big">' + big + '<small>' + small + '</small></div><dl>' + rows.map(r => '<dt>' + r[0] + '</dt><dd>' + r[1] + '</dd>').join('') + '</dl></div>';
+    const none = '—';
+    const os = S.orders.filter(o => o.status !== 'returned');
+    return '<p class="lede">數字來自這次 Demo 內操作過的單；基準與目標來自個案資料與方案文件。試點還沒開始，沒有實測月數字，只能說「進入試點驗證」。</p>' +
+      '<div class="kpis">' +
+      kpi('出貨量', m.filled ? fmtN(m.qty) : none, m.filled ? ' 片（已回填 ' + m.filled + ' 張）' : '回填後出現', [['基準', '114 千片／月（九月）'], ['試點目標', '≥ 125.4 千片／月'], ['說明', 'Demo 只有幾張單，不能和月值比']]) +
+      kpi('準時率', m.filled ? m.onTime + ' / ' + m.filled : none, m.filled ? ' 張準時' : '回填後出現', [['基準', '78%（九月）'], ['試點目標', '≥ 90%；甲 ≥ 87%'], ['算法', '實際出貨日 ≤ 要求交期']]) +
+      kpi('插單多出的換線', m.decided ? '+' + m.estC : none, m.decided ? ' 次（預估）' : '生管決定後出現', [['實際回填', m.filled ? '+' + m.actC + ' 次' : none], ['基準', '148 次／月（九月）'], ['換線時間', D.changeoverH.toFixed(2) + ' h／次']]) +
+      kpi('試算誤差', m.err != null ? Math.round(m.err * 100) + '%' : none, m.err != null ? ' 平均（換線時數）' : '回填後出現', [['目標', '±20% 內【我猜的】'], ['現行排程', '抓 ' + D.sched05 + ' h／線／天，實際約 ' + D.actualPerLineDay], ['試算用', D.changeoverH.toFixed(2) + ' h × 預估次數']]) +
+      '</div>' +
+      '<div class="kpis k3" style="margin-top:16px">' +
+      kpi('試算覆蓋率', m.replied ? Math.round(m.covered / m.replied * 100) + '%' : none, m.replied ? '（回覆 ' + m.replied + ' 張）' : '回覆後出現', [['規則', '沒有試算不放行回覆']]) +
+      kpi('AI 輔助提醒', String(m.anomalies + m.estFlags), ' 件（異常 ' + m.anomalies + '；換線估計超過 20%【我猜的】 ' + m.estFlags + '）', [['理由分類', Object.keys(m.reasonCats).length ? Object.keys(m.reasonCats).map(function (k) { return k + ' ' + m.reasonCats[k]; }).join('、') : '尚無']]) +
+      kpi('收單到回覆', m.lat != null ? minTxt(Math.round(m.lat)) : none, m.lat != null ? ' 平均' : '回覆後出現', [['九月', '非正式通知平均晚約 7 小時才到現場（資料3：7 筆平均 6.8 h）']]) +
+      kpi('LINE 推播', String(m.push), ' 則（計則數）', [['回覆', m.reply + ' 則（不計）'], ['失敗', m.failed + ' 則']]) +
+      '</div>' +
+      '<section class="panel" style="margin-top:20px"><div class="ptitle">每張單的進度與等待<small>只看單，不看人</small></div><div class="scroll-x"><table class="tbl"><thead><tr><th>單號</th><th>狀態</th><th style="min-width:280px">進度</th><th>目前等待</th><th>生管</th><th>試算</th></tr></thead><tbody>' +
+      (os.length ? os.map(o => { const tm = st.timerState(o); const c = st.latestCalc(o);
+        return '<tr><td><b>' + o.id + '</b>' + demoTag(o) + '</td><td>' + statusChip(o) + '</td><td>' + prog(o) + '</td><td>' + (tm ? '<span class="wait l' + tm.level + '">' + tm.who + ' ' + minTxt(tm.w) + '</span>' : '—') + '</td><td>' + (o.decision ? (o.decision.type === 'adopt' ? '採用' : '調整') : '—') + '</td><td>' + (c ? st.calcRef(c) + '（p' + c.pv + '）' : '—') + '</td></tr>'; }).join('') : '<tr><td colspan="6" class="sub">還沒有單。</td></tr>') +
+      '</tbody></table></div></section>' +
+      '<p class="footnote">指標與看板只顯示單與機台，不顯示個人績效。</p>';
+  }
+
+  function adLine() {
+    const st = A.st, S = st.S;
+    return '<section class="panel"><div class="ptitle">連線狀態 ' + simTag() + '<small>Demo 沒有連真的 LINE</small></div><div class="pb stack">' +
+      '<div class="row"><span>官方帳號：</span>' + (S.sim.lineDown ? '<b class="lowtxt">斷線（模擬）</b>' : '<b>正常（模擬）</b>') +
+      '<button type="button" class="btn sm" data-act="line-toggle">' + (S.sim.lineDown ? '恢復連線' : '模擬斷線') + '</button>' +
+      '<button type="button" class="btn sm" data-act="bad-sig">模擬一筆簽章不符的請求</button></div>' +
+      '<p class="sub">webhook 每筆都驗證 <span class="mono">x-line-signature</span>（以 channel secret 對 body 做 HMAC-SHA256），不符就拒絕；重送或重複事件用事件 ID 去重，只處理一次。回覆（Reply）不計則數，主動推播（Push）計則數；方案與價格以官方公告為準，正式版實作前再查。</p></div></section>' +
+      '<section class="panel" style="margin-top:16px"><div class="ptitle">原始訊息紀錄（webhook 事件）<small>原文照收，不改</small></div><div class="scroll-x"><table class="tbl"><thead><tr><th>時間</th><th>事件 ID</th><th>LINE 使用者 ID</th><th>簽章</th><th>處理結果</th><th>原文</th><th></th></tr></thead><tbody>' +
+      (S.events.length ? S.events.map(e => '<tr><td>' + esc(e.at) + '</td><td class="mono">' + esc(e.eventId) + '</td><td class="mono">' + esc(e.userId || '—') + '</td><td>' + esc(e.sig) + '</td><td>' + esc(e.result) + '</td><td class="mono">' + esc(e.text) + '</td><td>' +
+        (e.sig === '通過（模擬）' ? '<button type="button" class="btn sm" data-act="redeliver" data-ev="' + esc(e.eventId) + '">模擬重送</button>' : '') + '</td></tr>').join('') : '<tr><td colspan="7" class="sub">還沒有事件。到「老闆」轉傳一則訊息。</td></tr>') +
+      '</tbody></table></div></section>' +
+      '<section class="panel" style="margin-top:16px"><div class="ptitle">通知紀錄<small>推播 ' + st.pushCount() + ' 則（計則數）・回覆 ' + st.replyCount() + ' 則（不計）</small></div><div class="scroll-x"><table class="tbl"><thead><tr><th>編號</th><th>時間</th><th>推給</th><th>類型</th><th>單號</th><th>對應試算</th><th>方式</th><th>狀態</th></tr></thead><tbody>' +
+      (S.notes.length ? S.notes.slice().reverse().map(n => '<tr><td class="mono">' + n.id + '</td><td>' + esc(n.at) + '</td><td>' + esc(n.to) + '</td><td>' + esc(n.msgType) + '</td><td>' + esc(n.order) + '</td><td>' + esc(n.calc || '—') + '</td><td>' + (n.cost === 'push' ? '推播（計則數）' : '回覆（不計）') + '</td><td>' + ({ sent: '已送出', failed: '<b class="lowtxt">失敗</b>', resent: '已補送' }[n.status]) + '</td></tr>').join('') : '<tr><td colspan="8" class="sub">還沒有通知。</td></tr>') +
+      '</tbody></table></div></section>';
+  }
+
+  function viewAdmin() {
+    const tab = A.ui.adminTab;
+    const fn = { people: adPeople, params: adParams, master: adMaster, audit: adAudit, metrics: adMetrics, line: adLine }[tab];
+    return '<div class="ph"><h1>後台</h1>' + tag('human', '管理者') + '<span class="sub">電腦網頁</span></div>' +
+      '<div class="ad"><nav class="ad-nav" aria-label="後台功能">' + TABS.map(([k, l]) => '<button type="button" data-act="atab" data-k="' + k + '"' + (tab === k ? ' aria-current="page"' : '') + '>' + l + '</button>').join('') + '</nav><div>' + fn() + '</div></div>';
+  }
+
+  Object.assign(A, { viewPlanner, viewAdmin, readParams });
+})(window);
+
+/* ===== main.js ===== */
+/* 昇嶺電子 單一插單入口 Demo v2 — 主程式：入口切換、繪製、事件
+   同一份記憶體資料驅動四個端；切換入口＝切換身分，每個端只看得到自己那一段。 */
+(function (root) {
+  'use strict';
+  const E = root.Engine, U = E.util, Store = root.Store;
+  const A = root.App;
+  const { $, esc, tag, simTag, ord, toast } = A;
+
+  const ROLES = [
+    { k: 'boss', t: '老闆', r: 'LINE（模擬）', line: true },
+    { k: 'sales', t: '業務', r: 'LINE＋小網頁（模擬）', line: true },
+    { k: 'planner', t: '生管', r: '電腦網頁', line: false },
+    { k: 'admin', t: '後台', r: '電腦網頁・管理者', line: false }
+  ];
+
+  let st;
+  function boot() {
+    st = A.st = Store.create({ onChange: () => render() });
+    A.ui.liff = null;
+  }
+
+  /* ---------- 頂列、入口、導覽 ---------- */
+  function badges() {
+    const S = st.S, os = S.orders;
+    const sp = st.person(A.ui.salesId);
+    return {
+      boss: '',
+      sales: sp && sp.status === 'bound' ? String(os.filter(o => (o.status === 'received' && o.parse) || o.status === 'decided' || o.status === 'replied').length || '') : '',
+      planner: String(os.filter(o => o.status === 'queued').length || ''),
+      admin: S.notes.some(n => n.status === 'failed') || S.sim.lineDown ? '!' : ''
+    };
+  }
+  function guide() {
+    const os = st.S.orders.filter(o => o.status !== 'returned');
+    const n = s => os.filter(o => o.status === s).length;
+    const steps = [];
+    if (!os.length) steps.push('從<b>老闆</b>開始：在模擬面板轉傳一則客戶訊息給官方帳號。');
+    if (os.some(o => o.status === 'received' && !o.parse)) steps.push('解析中…');
+    if (os.some(o => o.status === 'received' && o.parse)) steps.push('<b>業務</b>有 ' + os.filter(o => o.status === 'received' && o.parse).length + ' 張待確認：在 LINE 通知點「開啟確認頁」。');
+    if (n('queued')) steps.push('<b>生管</b>有 ' + n('queued') + ' 張待決定：採用建議或調整。');
+    if (n('decided')) steps.push('<b>業務</b>收到可交日：開啟回覆草稿，複製回覆。');
+    if (n('replied')) steps.push('<b>老闆</b>已收到可交日卡片；<b>業務</b>出貨後回填實際結果。');
+    if (os.length && !steps.length) steps.push('這輪都走完了。可到<b>後台</b>看稽核與指標，或改【我猜的】參數再試一張。');
+    return '<div class="guide" aria-live="polite">' + simTag('示範導覽') + steps.join('　') + '</div>';
+  }
+  function renderChrome() {
+    const now = st.stamp();
+    $('#clock').textContent = '示意時間 ' + U.md(now.date) + '（週' + U.WD[U.dow(now.date)] + '）' + now.hm;
+    const b = badges();
+    $('#roles').innerHTML = ROLES.map(r => '<button type="button" class="role' + (r.line ? ' r-line' : '') + '" data-act="role" data-k="' + r.k + '"' + (A.ui.role === r.k ? ' aria-current="page"' : '') + '>' +
+      '<span class="ico" aria-hidden="true"></span><span><span class="t">' + r.t + '</span><span class="r">' + r.r + '</span></span><span class="cnt"' + (b[r.k] ? ' aria-label="' + b[r.k] + ' 件待處理"' : '') + '>' + b[r.k] + '</span></button>').join('');
+    $('#guide').innerHTML = guide();
+  }
+
+  /* ---------- 主繪製 ---------- */
+  let lastRole = null;
+  function render() {
+    const y = window.scrollY; const same = lastRole === A.ui.role;
+    const chats = {}; document.querySelectorAll('[data-chat]').forEach(el => { chats[el.dataset.chat] = { top: el.scrollTop, max: el.scrollHeight - el.clientHeight }; });
+    const liffScroll = $('.liff-b') ? $('.liff-b').scrollTop : 0;
+    const focusId = document.activeElement && document.activeElement.id;
+    renderChrome();
+    const fn = { boss: A.viewBoss, sales: A.viewSales, planner: A.viewPlanner, admin: A.viewAdmin }[A.ui.role];
+    $('#view').innerHTML = fn();
+    document.querySelectorAll('[data-chat]').forEach(el => {
+      const prev = chats[el.dataset.chat];
+      el.scrollTop = (!prev || prev.top >= prev.max - 30) ? el.scrollHeight : prev.top;
+    });
+    const lb = $('.liff-b'); if (lb && A.ui.keepLiffScroll) lb.scrollTop = liffScroll;
+    A.ui.keepLiffScroll = true;
+    if (focusId) { const el = document.getElementById(focusId); if (el && el.focus) el.focus({ preventScroll: true }); }
+    if (same) window.scrollTo(0, y);
+    lastRole = A.ui.role;
+  }
+  function go(role) {
+    if (!ROLES.some(r => r.k === role)) role = 'boss';
+    A.ui.role = role;
+    try { if (location.hash !== '#' + role) history.replaceState(null, '', '#' + role); } catch (e) { /* 預覽環境可能不允許 */ }
+    render(); window.scrollTo(0, 0);
+  }
+  function openLiff(page, id) { A.ui.liff = { page, id: id || null }; A.ui.keepLiffScroll = false; render(); }
+  function resetDemo() {
+    A.ui.confirmReset = false; boot();
+    Object.assign(A.ui, { salesId: 'P-02', liff: null, sel: null, adj: {}, reason: {}, edit: {}, promise: {}, fu: {}, bindCode: '', web: { text: '', source: '電話' }, auditFilter: 'all', adminTab: 'people' });
+    render();
+  }
+
+  /* ---------- 剪貼簿 ---------- */
+  async function copyText(t) {
+    try { await navigator.clipboard.writeText(t); return true; } catch (e) { /* 改用選取 */ }
+    try {
+      const ta = document.createElement('textarea'); ta.value = t; ta.style.position = 'fixed'; ta.style.opacity = '0';
+      document.body.appendChild(ta); ta.select(); const ok = document.execCommand('copy'); ta.remove(); return ok;
+    } catch (e) { return false; }
+  }
+
+  /* ---------- 事件 ---------- */
+  const me = () => A.ui.salesId;
+  document.addEventListener('click', async e => {
+    const b = e.target.closest('[data-act]'); if (!b || b.disabled) return;
+    const a = b.dataset.act, id = b.dataset.id; const o = id ? ord(id) : null;
+    switch (a) {
+      case 'role': return go(b.dataset.k);
+      case 'clock': st.advance(Number(b.dataset.min)); return toast('模擬時鐘前進 ' + b.dataset.min + ' 分鐘');
+      case 'reset':
+        if (!A.ui.confirmReset) { A.ui.confirmReset = true; toast('再按一次「重設 Demo」會清掉所有單與紀錄'); setTimeout(() => { A.ui.confirmReset = false; }, 4000); return; }
+        resetDemo(); return toast('已重設 Demo');
+
+      /* 老闆 */
+      case 'fwd': {
+        const s = Store.SAMPLES.find(x => x.key === b.dataset.k);
+        const boss = st.S.people.find(p => p.role === 'boss');
+        const r = await st.forward(boss.id, s.text, s.key);
+        if (r && r.down) return toast('轉傳失敗：LINE 斷線（模擬）');
+        if (r && r.order) toast('已收單 ' + r.order.id + '：解析完成後通知業務');
+        return;
+      }
+
+      /* 業務：LINE 與 LIFF */
+      case 'liff': return openLiff(b.dataset.page, id);
+      case 'liff-close': A.ui.liff = null; return render();
+      case 'unbound-say': {
+        await st.forward(me(), '乙要追加 B2 300片，11/21 要', null);
+        return toast('官方帳號回覆：帳號尚未綁定（訊息不處理）');
+      }
+      case 'bind': {
+        const r = st.bind(me(), A.ui.bindCode);
+        if (!r.ok) return toast(r.msg);
+        A.ui.bindCode = ''; A.ui.liff = null; render(); return toast('綁定完成');
+      }
+      case 'edit': A.ui.edit[id + b.dataset.f] = true; return render();
+      case 'pick': if (o) { st.setField(o, b.dataset.f, b.dataset.v); delete A.ui.edit[id + b.dataset.f]; } return;
+      case 'keep': if (o) st.keepField(o, b.dataset.f); return;
+      case 'fu-set': {
+        const v = A.ui.fu[id + b.dataset.f];
+        if (!v) return toast('先填答案');
+        st.setField(o, b.dataset.f, v); delete A.ui.fu[id + b.dataset.f]; return;
+      }
+      case 'submit': {
+        const r = st.submit(o, me());
+        if (!r.ok) return toast(r.msg);
+        return toast(o.id + ' 已送出，試算 ' + st.calcRef(r.calc) + ' 完成，交給生管');
+      }
+      case 'return': st.returnOrder(o, me()); A.ui.liff = null; render(); return toast(o.id + ' 已退回，原文保留');
+      case 'copy': {
+        const d = st.replyInfo(o);
+        if (!d.calc || d.noDecision) return;
+        // 自動示範時不動使用者的剪貼簿
+        const ok = A.tour && A.tour.active ? true : await copyText(d.draft);
+        const r = st.copyReply(o, me(), d.draft);
+        if (!r.ok) return toast(r.msg);
+        return toast(ok ? '已複製回覆，貼給客戶即可。已通知老闆。' : '瀏覽器不讓程式複製，請手動選取草稿。回覆紀錄已留下。');
+      }
+      case 'actual-save': {
+        const ship = $('#a_ship').value, c = parseInt($('#a_c').value, 10), h = parseFloat($('#a_h').value);
+        if (!ship || isNaN(c) || isNaN(h)) return toast('實際出貨日、換線次數、換線小時都要填');
+        st.saveActual(o, me(), { shipDate: ship, changeovers: c, hours: h }); return toast('已回填，後台指標的試算誤差會更新');
+      }
+      case 'actual-sample': st.saveActual(o, me(), st.sampleActual(o)); return toast('已帶入示意數字並回填');
+      case 'web-intake': {
+        const t = A.ui.web.text.trim(); if (!t) return;
+        const src = A.ui.web.source === 'LINE' ? 'WEB' : A.ui.web.source;
+        A.ui.web.text = '';
+        const no = await st.webIntake(me(), t, src);
+        toast(no.id + ' 已登錄，解析完成');
+        return openLiff('confirm', no.id);
+      }
+
+      /* 生管 */
+      case 'sel': A.ui.sel = id; return render();
+      case 'adopt': {
+        const r = st.decide(o, 'adopt', A.ui.plannerId, { promise: A.ui.promise[id], reason: A.ui.reason[id] });
+        if (!r.ok) return toast(r.msg);
+        delete A.ui.promise[id]; delete A.ui.reason[id]; render();
+        return toast(o.id + ' 已採用建議；客戶期限已推到業務與老闆的 LINE（模擬）');
+      }
+      case 'adjust-open': { const x = A.ui.adj[id] || {}; x.open = !x.open; if (!x.open) delete x.k; A.ui.adj[id] = x; return render(); }
+      case 'adjust-save': {
+        const x = A.ui.adj[id] || {};
+        const r = st.decide(o, 'adjust', A.ui.plannerId, { k: x.k, reason: A.ui.reason[id], promise: A.ui.promise[id] });
+        if (!r.ok) return toast(r.msg);
+        delete A.ui.adj[id]; delete A.ui.reason[id]; delete A.ui.promise[id]; render();
+        return toast(o.id + ' 已調整並寫進稽核；可交日已推到 LINE（模擬）');
+      }
+
+      /* 後台 */
+      case 'atab': A.ui.adminTab = b.dataset.k; render(); return;
+      case 'unbind': st.unbind(b.dataset.pid, '管理者'); return toast('已解除綁定，產生新的綁定碼');
+      case 'regen': st.regenCode(b.dataset.pid, '管理者'); return toast('已重新產生綁定碼，舊碼失效');
+      case 'apply-params': {
+        const r = st.applyParams(A.readParams(), '管理者');
+        return toast(r.ok ? '已套用 ' + r.n + ' 項，參數版本 p' + r.v + (r.recalc ? '；待決定的 ' + r.recalc + ' 張單已重新試算' : '') : '沒有套用：' + r.msg);
+      }
+      case 'reset-params': { const r = st.resetParams('管理者'); return toast(r.ok ? '已還原預設值（p' + r.v + '）' : r.msg); }
+      case 'apply-prices': {
+        const prices = {}; E.TABLES.models.forEach(m => { prices[m] = Number($('#pr_' + m).value); });
+        const r = st.applyParams({ prices }, '管理者');
+        return toast(r.ok ? '單價已更新（p' + r.v + '）' + (r.recalc ? '；' + r.recalc + ' 張單重新試算' : '') : r.msg);
+      }
+      case 'line-toggle': st.setLineDown(!st.S.sim.lineDown, '管理者'); return toast(st.S.sim.lineDown ? 'LINE 已模擬斷線' : 'LINE 已恢復；失敗的推播已補送');
+      case 'redeliver': await st.redeliver(b.dataset.ev); return toast('LINE 重送同一事件：已用事件 ID 去重，沒有重複建單');
+      case 'bad-sig': await st.webhook({ eventId: 'ev-forged', userId: 'U-不明', text: '（偽造請求）', badSig: true }); return toast('簽章不符，已拒絕');
+    }
+  });
+
+  document.addEventListener('change', e => {
+    const t = e.target;
+    if (t.dataset.field) {
+      const o = A.ui.liff && ord(A.ui.liff.id);
+      if (o) { delete A.ui.edit[o.id + t.dataset.field]; st.setField(o, t.dataset.field, t.value); }
+      return;
+    }
+    const a = t.dataset.actChange; if (!a) return;
+    if (a === 'salesId') { A.ui.salesId = t.value; A.ui.liff = null; return render(); }
+    if (a === 'webSrc') { A.ui.web.source = t.value; return; }
+    if (a === 'cand') { const x = A.ui.adj[t.dataset.id] || {}; x.k = parseInt(t.value, 10); A.ui.adj[t.dataset.id] = x; delete A.ui.promise[t.dataset.id]; return render(); }
+    if (a === 'promise') { if (t.value) A.ui.promise[t.dataset.id] = t.value; return render(); }
+    if (a === 'afilter') { A.ui.auditFilter = t.value; return render(); }
+  });
+
+  document.addEventListener('input', e => {
+    const t = e.target; const a = t.dataset.actInput; if (!a) return;
+    if (a === 'reason') {
+      A.ui.reason[t.dataset.id] = t.value;
+      const ok = t.value.trim().length >= 4; const sv = $('#save-' + t.dataset.id), w = $('#why-' + t.dataset.id);
+      if (sv) sv.disabled = !ok;
+      if (w) { w.textContent = ok ? '儲存後寫進稽核' : '沒填原因不能儲存'; w.classList.toggle('warn', !ok); }
+    }
+    if (a === 'fu') A.ui.fu[t.dataset.id + t.dataset.f] = t.value;
+    if (a === 'webText') {
+      A.ui.web.text = t.value;
+      const bound = st.person(me()).status === 'bound';
+      const bt = $('#btnWeb'); if (bt) bt.disabled = !t.value.trim() || !bound;
+      const w = $('#webWhy'); if (w) w.textContent = !bound ? '未綁定的人員不能登錄' : t.value.trim() ? '登錄後到「我的待辦」確認' : '先貼上原文';
+    }
+    if (a === 'bindCode') {
+      A.ui.bindCode = t.value;
+      const bt = $('#btnBind'); if (bt) bt.disabled = !t.value.trim();
+      const w = $('#bindWhy'); if (w) w.textContent = t.value.trim() ? '綁定後，新單通知會傳到這個 LINE' : '先輸入綁定碼';
+    }
+  });
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Enter' && e.target.dataset && e.target.dataset.actInput === 'fu') { const b = e.target.parentNode.querySelector('[data-act="fu-set"]'); if (b) b.click(); }
+    if (e.key === 'Escape' && A.ui.liff) { A.ui.liff = null; render(); }
+  });
+  window.addEventListener('hashchange', () => { const h = location.hash.slice(1); if (h && h !== A.ui.role) go(h); });
+
+  boot();
+  A.ui.role = ROLES.some(r => r.k === location.hash.slice(1)) ? location.hash.slice(1) : 'boss';
+  Object.assign(A, { go, reset: resetDemo });
+  window.__demo = { get st() { return st; }, get ui() { return A.ui; } };
+  render();
+})(window);
+
+/* ===== tour.js ===== */
+/* 昇嶺電子 單一插單入口 Demo v2 — 自動示範
+   按「自動示範」後，用畫面上真的按鈕把每個情境走一遍：游標移動、框出重點、旁白說明。
+   不另外寫一套假流程；資料和手動操作完全一樣，示範完可以接著自己按。 */
+(function (root) {
+  'use strict';
+  const A = root.App;
+  const T = A.tour = { active: false };
+  const reduce = root.matchMedia && root.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+  let speed = 1, paused = false, stopped = false;
+  let cur, ring, card, shield, elCh, elTx, elBar, elPause, elSpeed;
+
+  class Stop extends Error {}
+
+  /* ---------- 等待：會暫停、會依速度縮短、按結束就中斷 ---------- */
+  // 用實際經過的時間扣（分頁切到背景時計時器會被放慢，這樣切回來不會整段卡住）
+  async function wait(ms) {
+    let left = ms, last = performance.now();
+    while (left > 0) {
+      if (stopped) throw new Stop();
+      await sleep(Math.max(10, Math.min(40, left / speed)));
+      const now = performance.now();
+      if (!paused) left -= (now - last) * speed;
+      last = now;
+    }
+    if (stopped) throw new Stop();
+  }
+  const visible = el => el && el.getClientRects().length > 0;
+  function pick(sel) {
+    if (typeof sel === 'function') return sel();
+    const all = [...document.querySelectorAll(sel)].filter(visible);
+    return all[all.length - 1] || null;   // 聊天訊息取最新一則
+  }
+  async function find(sel, optional) {
+    for (let i = 0; i < 60; i++) {
+      const el = pick(sel);
+      if (el) return el;
+      await wait(100);
+    }
+    if (optional) return null;
+    throw new Error('找不到畫面上的「' + sel + '」');
+  }
+
+  /* ---------- 畫面元件 ---------- */
+  function mount() {
+    shield = document.createElement('div'); shield.className = 'tour-shield';
+    shield.title = '自動示範中；按「結束」可以自己操作';
+    ring = document.createElement('div'); ring.className = 'tour-ring';
+    cur = document.createElement('div'); cur.className = 'tour-cur';
+    cur.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 2l16 9.5-7.2 1.6L9 20.5z" fill="#fff" stroke="#14212E" stroke-width="1.6" stroke-linejoin="round"/></svg>';
+    card = document.createElement('section'); card.className = 'tour-card'; card.setAttribute('aria-label', '自動示範');
+    card.innerHTML = '<div class="tour-bar" aria-hidden="true"><i></i></div>' +
+      '<div class="tour-ch"></div><p class="tour-tx" aria-live="polite"></p>' +
+      '<div class="tour-act"><button type="button" class="tour-b" data-tour="pause">暫停</button>' +
+      '<button type="button" class="tour-b" data-tour="speed">速度 1×</button>' +
+      '<button type="button" class="tour-b end" data-tour="stop">結束示範</button></div>';
+    document.body.append(shield, ring, cur, card);
+    elCh = card.querySelector('.tour-ch'); elTx = card.querySelector('.tour-tx'); elBar = card.querySelector('.tour-bar i');
+    elPause = card.querySelector('[data-tour=pause]'); elSpeed = card.querySelector('[data-tour=speed]');
+    card.addEventListener('click', e => {
+      const b = e.target.closest('[data-tour]'); if (!b) return;
+      const k = b.dataset.tour;
+      if (k === 'pause') { paused = !paused; b.textContent = paused ? '繼續' : '暫停'; card.classList.toggle('paused', paused); }
+      if (k === 'speed') { speed = speed === 1 ? 2 : speed === 2 ? 0.6 : 1; b.textContent = '速度 ' + (speed === 0.6 ? '慢' : speed + '×'); }
+      if (k === 'stop' || k === 'close') { stopped = true; if (k === 'close' || !T.active) finish(); }
+      if (k === 'again') { finish(); start(); }
+    });
+    const x = innerWidth / 2, y = innerHeight / 2;
+    cur.style.transform = 'translate(' + x + 'px,' + y + 'px)';
+    document.body.classList.add('touring');
+  }
+  function finish() {
+    [shield, ring, cur, card].forEach(el => el && el.remove());
+    shield = ring = cur = card = null;
+    document.body.classList.remove('touring');
+    T.active = false;
+  }
+
+  /* ---------- 動作 ---------- */
+  let chN = 0;
+  function chapter(n, title) {
+    chN = n;
+    elCh.innerHTML = '<span class="n">情境 ' + n + '／' + CHAPTERS + '</span>' + title;
+    elBar.style.width = ((n - 1) / CHAPTERS * 100) + '%';
+    elTx.textContent = '';
+  }
+  async function say(text) {
+    elTx.classList.remove('in'); void elTx.offsetWidth;
+    elTx.textContent = text; elTx.classList.add('in');
+    await wait(Math.max(1700, text.length * 75));
+  }
+  async function point(el) {
+    el.scrollIntoView({ block: 'center', inline: 'nearest', behavior: reduce ? 'auto' : 'smooth' });
+    await wait(500);
+    const r = el.getBoundingClientRect();
+    Object.assign(ring.style, { left: (r.left - 5) + 'px', top: (r.top - 5) + 'px', width: (r.width + 10) + 'px', height: (r.height + 10) + 'px', opacity: 1 });
+    const x = r.left + Math.min(r.width / 2, 60), y = r.top + Math.min(r.height / 2, 22);
+    cur.style.transitionDuration = reduce ? '0s' : (650 / speed) + 'ms';
+    cur.style.transform = 'translate(' + x + 'px,' + y + 'px)';
+    await wait(reduce ? 150 : 700);
+  }
+  const hideRing = () => { if (ring) ring.style.opacity = 0; };
+
+  // 框出一塊畫面並說明（找不到就只說明）
+  async function show(sel, text) {
+    const el = await find(sel, true);
+    if (el) await point(el);
+    await say(text);
+    hideRing();
+  }
+  // 移到按鈕上、按下去
+  async function click(sel, text) {
+    const el = await find(sel);
+    await point(el);
+    if (text) await say(text);
+    cur.classList.add('down');
+    await wait(220);
+    cur.classList.remove('down');
+    el.click();
+    hideRing();
+    await wait(900);
+  }
+  // 一個字一個字打進輸入框
+  async function type(sel, text, say1) {
+    const el = await find(sel);
+    await point(el);
+    if (say1) await say(say1);
+    el.focus({ preventScroll: true }); el.value = '';
+    for (const ch of text) {
+      el.value += ch;
+      el.dispatchEvent(new Event('input', { bubbles: true }));
+      await wait(reduce ? 10 : 85);
+    }
+    hideRing();
+    await wait(500);
+  }
+  const role = (k, text) => click('[data-act=role][data-k=' + k + ']', text);
+  // 單選鈕本身是隱藏的 1px 元素；指向並點它的標籤（點標籤一樣會觸發 change）
+  const label = sel => { const f = () => { const i = pick(sel); return i && i.closest('label'); }; f.toString = () => sel; return f; };
+
+  /* ---------- 腳本：每個情境都用真的按鈕 ---------- */
+  const CHAPTERS = 8;
+  async function script() {
+    const st = () => A.st;
+    A.reset(); A.go('boss');
+    await wait(300);
+
+    chapter(1, '老闆收到客戶訊息，轉給官方帳號');
+    await say('客戶在 LINE 跟老闆說要插單。老闆不用回覆交期，只要把訊息轉傳給官方帳號「昇嶺插單」。');
+    await click('[data-act=fwd][data-k=full]', '真實情境是長按訊息 →「轉傳」。這裡用按鈕代替。');
+    await show('.ph-chat .msg', '官方帳號立刻回「已收單」。老闆端只收訊息，沒有欄位要填，也不再口頭答應交期。');
+
+    chapter(2, '業務在 LINE 確認新單');
+    await role('sales', '切到業務 A 的 LINE。');
+    await show('.ph-chat .fx', 'AI 已把原文拆成欄位，推一則「新單待確認」給業務。');
+    await click('.ph-chat [data-act=liff][data-page=confirm]', '點「開啟確認頁」，在 LINE 裡打開小網頁。');
+    await show('.liff .raw', '上面是原文，不能改；底線是 AI 取值的位置。');
+    await show('.liff .lf', '下面是欄位草稿。信心不夠的會標紅，一定要業務確認才能送出。');
+    await click('.liff [data-act=submit]', '欄位都齊了，按「確認送出」。系統立刻試算，交給生管。');
+    await click('.liff [data-act=liff-close]');
+
+    chapter(3, '生管看試算，決定可交日');
+    await role('planner', '切到生管看板（電腦網頁）。');
+    await show('.concl', 'AI 先給一行結論：建議插在哪張單後面、多幾次換線、罰款增加多少。');
+    await show('.pl-side .panel', '右邊是排程預覽，橘色那塊就是這張插單的位置。');
+    await click('.pl-detail [data-act=adopt]', 'AI 只給建議，由生管決定。按「採用建議」，可交日會推到業務和老闆的 LINE。');
+
+    chapter(4, '業務回覆客戶，老闆收到可交日');
+    await role('sales', '回到業務的 LINE。');
+    await click('.ph-chat [data-act=liff][data-page=reply]', '收到「可交日已決定」，點「開啟回覆草稿」。');
+    await show('.liff .cmpdue', '客戶要求和可交日並排。日期一律來自試算，AI 只能改措辭。');
+    await click('.liff [data-act=copy]', '按「複製回覆」貼給客戶。系統記下交期、時間和試算編號。');
+    await click('.liff [data-act=liff-close]');
+    await role('boss', '再看老闆的 LINE。');
+    await show('.ph-chat .fx', '老闆收到「可交日」卡片：誰決定、依據哪一版試算、業務已經回覆客戶。');
+
+    chapter(5, '客戶打電話來下單');
+    await role('sales', '這次客戶直接打電話給業務，沒有 LINE 訊息可以轉傳。');
+    await click(label('input[name=webSrc][value="電話"]'),'在「網頁備援入口」把來源選「電話」。');
+    await type('#webText', '乙那邊要插一張 B2，11/20 要，零件不變', '把客戶在電話裡講的話，照原樣打一行。');
+    await click('#btnWeb', '按「登錄原文」。一樣會解析、一樣要確認，原文一樣不能改。');
+    await show('.liff .kv', '來源記成「電話」，誰登錄、幾點收到都留下來。');
+    await show('.liff .fuq', '電話裡沒講數量。AI 不會亂猜，而是直接追問業務。');
+    if (await find('#fu_qty', true)) {
+      await type('#fu_qty', '500', '業務回撥問到：500 片。');
+      await click('.liff [data-act=fu-set][data-f=qty]');
+    }
+    for (let i = 0; i < 4; i++) {            // 其他追問（若有）選第一個選項
+      const chip = pick('.liff .fuq .chip-btn'); if (!chip) break;
+      await click('.liff .fuq .chip-btn', '再回答一題追問。');
+    }
+    await click('.liff [data-act=submit]', '都補齊了，確認送出，一樣交給生管試算。');
+    await click('.liff [data-act=liff-close]');
+
+    chapter(6, 'LINE 斷線時');
+    await role('admin', '假設 LINE 官方帳號故障。到後台。');
+    await click('[data-act=atab][data-k=line]', '打開「LINE 紀錄」。');
+    await click('[data-act=line-toggle]', '按「模擬斷線」。');
+    await role('boss', '老闆照常轉傳一則訊息……');
+    await click('[data-act=fwd][data-k=vague]');
+    await show('.ph-chat .sysmsg', '訊息沒送到，系統不會建單。畫面提醒老闆改打電話給業務，業務就用剛才的電話登錄。');
+    await role('admin', '回到後台。');
+    await click('[data-act=line-toggle]', '按「恢復連線」。斷線期間沒送出的通知會自動補送。');
+
+    chapter(7, '還沒綁定的帳號');
+    await role('sales', '換一位還沒綁定 LINE 的業務 B。');
+    await click(label('input[name=salesId][value="P-03"]'));
+    await click('[data-act=unbound-say]', '業務 B 傳訊息給官方帳號……');
+    await show('.ph-chat .fx', '沒綁定的帳號，訊息一律不處理，只回綁定說明。這樣才分得清誰說了什麼。');
+    await click('.ph-chat [data-act=liff][data-page=bind]', '按「綁定帳號」。');
+    const p3 = st().person('P-03');
+    await type('#bindCode', (p3 && p3.code) || 'K7Q2-9F', '輸入管理者給的一次性綁定碼。');
+    await click('#btnBind', '按「綁定」。之後新單通知就會傳到這個 LINE。');
+    A.ui.salesId = 'P-02'; A.ui.liff = null;
+
+    chapter(8, '沒人處理時自動提醒，每一步都留紀錄');
+    await say('剛才電話那張單還在等生管決定。用上方的時鐘快轉，看看沒人處理會怎樣。');
+    await click('[data-act=clock][data-min="120"]', '時間 +2 小時。');
+    await click('[data-act=clock][data-min="120"]', '再 +2 小時。');
+    await role('planner');
+    await show('.pl-list .wait', '等太久會標「逾時」，再久就升級通知生管主管，不會推給老闆。');
+    await role('admin');
+    await click('[data-act=atab][data-k=audit]', '最後看稽核紀錄。');
+    await show('.audit', '剛才每一步：誰、幾點、做了什麼，全都在這裡。只能追加，不能改也不能刪。');
+
+    elBar.style.width = '100%';
+    elCh.innerHTML = '<span class="n">示範結束</span>八個情境都走完了';
+    elTx.textContent = '畫面停在示範後的狀態，可以接著自己點。按「重設 Demo」可以從頭開始。';
+    card.querySelector('.tour-act').innerHTML = '<button type="button" class="tour-b" data-tour="again">再看一次</button><button type="button" class="tour-b end" data-tour="close">關閉</button>';
+    shield.remove(); shield = null; cur.style.opacity = 0;
+    T.active = false;
+  }
+
+  async function start() {
+    if (T.active) return;
+    stopped = false; paused = false; speed = 1;
+    T.active = true;
+    mount();
+    try {
+      await script();
+    } catch (e) {
+      if (e instanceof Stop) { finish(); return; }
+      console.error(e);
+      if (card) {
+        elTx.textContent = '示範中斷：' + e.message + '。可以按「重設 Demo」後再試一次。';
+        card.querySelector('.tour-act').innerHTML = '<button type="button" class="tour-b end" data-tour="close">關閉</button>';
+        if (shield) { shield.remove(); shield = null; }
+      }
+      T.active = false;
+    }
+  }
+
+  document.addEventListener('click', e => {
+    if (e.target.closest('[data-act=tour]')) start();
+  });
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape' && card) { stopped = true; if (!T.active) finish(); }
+  });
+  T.start = start;
+})(window);
+
+</script>
+</body>
+</html>

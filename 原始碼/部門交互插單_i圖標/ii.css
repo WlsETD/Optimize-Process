@@ -1,0 +1,19 @@
+/* ⓘ 說明圖示：說明文字收進圖示，滑過／聚焦／點一下才顯示 */
+.ii{display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;margin:0 0 0 6px;padding:0;border:1.5px solid var(--ai-line,#5b8db8);border-radius:50%;background:#fff;color:var(--ai-line,#2b6aa0);font:italic 700 11px/1 Georgia,'Times New Roman',serif;cursor:help;vertical-align:middle;flex:none;position:relative;top:-1px}
+.ii:hover,.ii:focus-visible,.ii.on{background:var(--ai-line,#2b6aa0);color:#fff;outline:none}
+.ii:focus-visible{box-shadow:0 0 0 2px #fff,0 0 0 4px var(--ai-line,#2b6aa0)}
+.top .ii{background:transparent;border-color:#BFD3E6;color:#BFD3E6}
+.top .ii:hover,.top .ii:focus-visible,.top .ii.on{background:#BFD3E6;color:#003366}
+.ph .ii{margin-left:2px}
+.legend.ii-moved{display:none}
+#iiTip{position:fixed;z-index:100000;left:0;top:0;max-width:min(380px,calc(100vw - 24px));padding:10px 12px;background:#0F2740;color:#fff;border-radius:4px;font:400 13px/1.65 'Noto Sans TC',system-ui,sans-serif;box-shadow:0 6px 22px rgba(0,0,0,.28);pointer-events:none;opacity:0;visibility:hidden;transition:opacity .12s}
+#iiTip.show{opacity:1;visibility:visible}
+#iiTip p+p{margin-top:6px}
+#iiTip b{color:#FFD27A}
+#iiTip .iileg{display:flex;flex-direction:column;gap:6px;color:#fff;font-size:12.5px}
+#iiTip .iileg span{display:block}
+#iiTip .iileg i{border-color:#fff}
+#iiTip .iileg .lg-raw i,#iiTip .iileg .lg-ai i,#iiTip .iileg .lg-guess i,#iiTip .iileg .lg-low i{background:#fff}
+
+.ii.lbl{width:auto;height:auto;border-radius:10px;padding:1px 8px 1px 3px;gap:5px;font:500 12px/1.5 'Noto Sans TC',system-ui,sans-serif;font-style:normal}
+.ii.lbl i{display:inline-flex;align-items:center;justify-content:center;width:14px;height:14px;border:1.5px solid currentColor;border-radius:50%;font:italic 700 10px/1 Georgia,serif}

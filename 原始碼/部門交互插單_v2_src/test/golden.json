@@ -1,0 +1,474 @@
+{
+  "full": {
+    "fields": {
+      "customer": {
+        "value": "甲",
+        "conf": 0.95,
+        "span": [
+          0,
+          3
+        ]
+      },
+      "model": {
+        "value": "A1",
+        "conf": 0.95,
+        "span": [
+          6,
+          8
+        ]
+      },
+      "qty": {
+        "value": 800,
+        "conf": 0.95,
+        "span": [
+          9,
+          13
+        ]
+      },
+      "due": {
+        "value": "2026-11-20",
+        "conf": 0.95,
+        "span": [
+          14,
+          20
+        ]
+      },
+      "partChange": {
+        "value": true,
+        "conf": 0.9,
+        "span": [
+          24,
+          28
+        ]
+      },
+      "isAdd": {
+        "value": true,
+        "conf": 0.9,
+        "span": [
+          3,
+          5
+        ]
+      }
+    },
+    "X": {
+      "id": "A-0001",
+      "customer": "甲",
+      "model": "A1",
+      "qty": 800,
+      "due": "2026-11-20",
+      "partChange": true
+    },
+    "fingerprint": "e56b6740",
+    "entry": "今天 15:00",
+    "frozen": [
+      "Q-01",
+      "Q-02",
+      "Q-03",
+      "Q-04"
+    ],
+    "baseLoss": 0,
+    "best": 4,
+    "cands": [
+      {
+        "after": "Q-01",
+        "start": "11/17 16:00",
+        "end": "11/18 09:12",
+        "extraC": 1,
+        "lateX": 0,
+        "deltaLoss": 1302,
+        "newLate": [
+          "Q-03:1",
+          "Q-05:1"
+        ],
+        "resorted": false,
+        "risk": "中",
+        "lossLevel": "低"
+      },
+      {
+        "after": "Q-02",
+        "start": "11/18 12:38",
+        "end": "11/18 14:12",
+        "extraC": 1,
+        "lateX": 0,
+        "deltaLoss": 1302,
+        "newLate": [
+          "Q-03:1",
+          "Q-05:1"
+        ],
+        "resorted": false,
+        "risk": "中",
+        "lossLevel": "低"
+      },
+      {
+        "after": "Q-03",
+        "start": "11/18 15:52",
+        "end": "11/19 09:04",
+        "extraC": 2,
+        "lateX": 0,
+        "deltaLoss": 744,
+        "newLate": [
+          "Q-05:1"
+        ],
+        "resorted": false,
+        "risk": "中",
+        "lossLevel": "低"
+      },
+      {
+        "after": "Q-04",
+        "start": "11/19 11:30",
+        "end": "11/19 13:17",
+        "extraC": 2,
+        "lateX": 0,
+        "deltaLoss": 744,
+        "newLate": [
+          "Q-05:1"
+        ],
+        "resorted": false,
+        "risk": "中",
+        "lossLevel": "低"
+      },
+      {
+        "after": "Q-05",
+        "start": "11/19 15:44",
+        "end": "11/20 08:55",
+        "extraC": 1,
+        "lateX": 0,
+        "deltaLoss": 0,
+        "newLate": [],
+        "resorted": false,
+        "risk": "低",
+        "lossLevel": "無"
+      },
+      {
+        "after": "Q-06",
+        "start": "11/20 12:22",
+        "end": "11/20 13:55",
+        "extraC": 1,
+        "lateX": 0,
+        "deltaLoss": 0,
+        "newLate": [],
+        "resorted": false,
+        "risk": "中",
+        "lossLevel": "無"
+      }
+    ]
+  },
+  "noqty": {
+    "fields": {
+      "customer": {
+        "value": "乙",
+        "conf": 0.95,
+        "span": [
+          0,
+          1
+        ]
+      },
+      "model": {
+        "value": "B2",
+        "conf": 0.95,
+        "span": [
+          8,
+          10
+        ]
+      },
+      "qty": {
+        "value": null,
+        "conf": 0,
+        "span": null
+      },
+      "due": {
+        "value": "2026-11-20",
+        "conf": 0.95,
+        "span": [
+          11,
+          17
+        ]
+      },
+      "partChange": {
+        "value": false,
+        "conf": 0.9,
+        "span": [
+          19,
+          23
+        ]
+      },
+      "isAdd": {
+        "value": true,
+        "conf": 0.9,
+        "span": [
+          4,
+          7
+        ]
+      }
+    },
+    "X": {
+      "id": "A-0001",
+      "customer": "乙",
+      "model": "B2",
+      "qty": 2400,
+      "due": "2026-11-20",
+      "partChange": false
+    },
+    "fingerprint": "b5813740",
+    "entry": "今天 15:00",
+    "frozen": [
+      "Q-01",
+      "Q-02",
+      "Q-03",
+      "Q-04"
+    ],
+    "baseLoss": 0,
+    "best": 2,
+    "cands": [
+      {
+        "after": "Q-01",
+        "start": "11/17 16:00",
+        "end": "11/18 11:25",
+        "extraC": 0,
+        "lateX": 0,
+        "deltaLoss": 3975,
+        "newLate": [
+          "Q-02:1",
+          "Q-03:1",
+          "Q-05:1",
+          "Q-07:1"
+        ],
+        "resorted": false,
+        "risk": "中",
+        "lossLevel": "中"
+      },
+      {
+        "after": "Q-02",
+        "start": "11/18 12:38",
+        "end": "11/19 08:17",
+        "extraC": 1,
+        "lateX": 0,
+        "deltaLoss": 2046,
+        "newLate": [
+          "Q-03:1",
+          "Q-05:2"
+        ],
+        "resorted": true,
+        "risk": "中",
+        "lossLevel": "低"
+      },
+      {
+        "after": "Q-03",
+        "start": "11/18 15:52",
+        "end": "11/19 11:30",
+        "extraC": 0,
+        "lateX": 0,
+        "deltaLoss": 1992,
+        "newLate": [
+          "Q-05:1",
+          "Q-07:1"
+        ],
+        "resorted": false,
+        "risk": "中",
+        "lossLevel": "低"
+      },
+      {
+        "after": "Q-04",
+        "start": "11/19 11:30",
+        "end": "11/19 15:30",
+        "extraC": 0,
+        "lateX": 0,
+        "deltaLoss": 1992,
+        "newLate": [
+          "Q-05:1",
+          "Q-07:1"
+        ],
+        "resorted": false,
+        "risk": "中",
+        "lossLevel": "低"
+      },
+      {
+        "after": "Q-05",
+        "start": "11/19 15:44",
+        "end": "11/20 11:22",
+        "extraC": 1,
+        "lateX": 0,
+        "deltaLoss": 2673,
+        "newLate": [
+          "Q-06:1",
+          "Q-07:1"
+        ],
+        "resorted": false,
+        "risk": "中",
+        "lossLevel": "低"
+      },
+      {
+        "after": "Q-06",
+        "start": "11/20 12:22",
+        "end": "11/21 08:00",
+        "extraC": 0,
+        "lateX": 1,
+        "deltaLoss": 3744,
+        "newLate": [
+          "Q-07:1"
+        ],
+        "resorted": false,
+        "risk": "高",
+        "lossLevel": "中"
+      }
+    ]
+  },
+  "vague": {
+    "fields": {
+      "customer": {
+        "value": "丙",
+        "conf": 0.95,
+        "span": [
+          0,
+          1
+        ]
+      },
+      "model": {
+        "value": "C3",
+        "conf": 0.95,
+        "span": [
+          3,
+          5
+        ]
+      },
+      "qty": {
+        "value": 600,
+        "conf": 0.95,
+        "span": [
+          8,
+          12
+        ]
+      },
+      "due": {
+        "value": "2026-11-19",
+        "conf": 0.55,
+        "span": [
+          13,
+          15
+        ],
+        "alts": [
+          "2026-11-19",
+          "2026-11-26"
+        ]
+      },
+      "partChange": {
+        "value": false,
+        "conf": 0.9,
+        "span": [
+          17,
+          21
+        ]
+      },
+      "isAdd": {
+        "value": true,
+        "conf": 0.9,
+        "span": [
+          6,
+          9
+        ]
+      }
+    },
+    "X": {
+      "id": "A-0001",
+      "customer": "丙",
+      "model": "C3",
+      "qty": 600,
+      "due": "2026-11-19",
+      "partChange": false
+    },
+    "fingerprint": "126d9470",
+    "entry": "今天 15:00",
+    "frozen": [
+      "Q-01",
+      "Q-02",
+      "Q-03",
+      "Q-04"
+    ],
+    "baseLoss": 0,
+    "best": 4,
+    "cands": [
+      {
+        "after": "Q-01",
+        "start": "11/17 16:00",
+        "end": "11/18 08:38",
+        "extraC": 1,
+        "lateX": 0,
+        "deltaLoss": 1302,
+        "newLate": [
+          "Q-03:1",
+          "Q-05:1"
+        ],
+        "resorted": false,
+        "risk": "中",
+        "lossLevel": "低"
+      },
+      {
+        "after": "Q-02",
+        "start": "11/18 12:38",
+        "end": "11/18 13:52",
+        "extraC": 0,
+        "lateX": 0,
+        "deltaLoss": 1302,
+        "newLate": [
+          "Q-03:1",
+          "Q-05:1"
+        ],
+        "resorted": false,
+        "risk": "中",
+        "lossLevel": "低"
+      },
+      {
+        "after": "Q-03",
+        "start": "11/18 15:52",
+        "end": "11/19 08:17",
+        "extraC": 0,
+        "lateX": 0,
+        "deltaLoss": 744,
+        "newLate": [
+          "Q-05:1"
+        ],
+        "resorted": false,
+        "risk": "中",
+        "lossLevel": "低"
+      },
+      {
+        "after": "Q-04",
+        "start": "11/19 11:30",
+        "end": "11/19 12:44",
+        "extraC": 0,
+        "lateX": 0,
+        "deltaLoss": 744,
+        "newLate": [
+          "Q-05:1"
+        ],
+        "resorted": false,
+        "risk": "中",
+        "lossLevel": "低"
+      },
+      {
+        "after": "Q-05",
+        "start": "11/19 15:44",
+        "end": "11/20 08:08",
+        "extraC": 0,
+        "lateX": 1,
+        "deltaLoss": 186,
+        "newLate": [],
+        "resorted": false,
+        "risk": "高",
+        "lossLevel": "低"
+      },
+      {
+        "after": "Q-06",
+        "start": "11/20 12:22",
+        "end": "11/20 13:35",
+        "extraC": 1,
+        "lateX": 1,
+        "deltaLoss": 186,
+        "newLate": [],
+        "resorted": false,
+        "risk": "高",
+        "lossLevel": "低"
+      }
+    ]
+  }
+}

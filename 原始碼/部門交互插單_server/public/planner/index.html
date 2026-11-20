@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>生管看板・昇嶺插單入口</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/assets/style.css">
+<link rel="stylesheet" href="/assets/real.css">
+</head>
+<body>
+<header class="top desk-top">
+  <div class="brand"><b>昇嶺電子</b><span>單一插單入口</span></div>
+  <div class="top-mid"><span>生管看板</span></div>
+  <div class="top-r"><span class="who" id="who"></span>
+    <button type="button" class="btn ghost sm" data-act="refresh">重新整理</button>
+    <button type="button" class="btn ghost sm" data-act="logout">登出</button></div>
+</header>
+<div class="legend" aria-label="顏色說明">
+  <span class="lg-raw"><i></i>原文，不改</span>
+  <span class="lg-ai"><i></i>AI 產生，只給建議</span>
+  <span class="lg-human"><i></i>人確認或決定</span>
+  <span class="lg-guess"><i></i>【我猜的】，待確認</span>
+  <span class="lg-low"><i></i>低信心，要確認</span>
+</div>
+<main id="view"><p class="sub"><span class="busy"></span>載入中…</p></main>
+<div id="toast" role="status" aria-live="polite"></div>
+<script src="/assets/engine.js"></script>
+<script src="/assets/common.js"></script>
+<script src="/assets/ui-common.js"></script>
+<script src="/planner/planner.js"></script>
+</body>
+</html>

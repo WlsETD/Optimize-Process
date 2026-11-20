@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>昇嶺插單入口 v2</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+<!--STYLE-->
+</head>
+<body>
+<header class="top">
+  <div class="brand"><b>昇嶺電子</b><span>單一插單入口 v2</span></div>
+  <div class="top-mid"><span class="tag demo">Demo</span><span class="tag sim">模擬</span><span>示意資料；沒有連 LINE、沒有連 ERP、沒有連模型</span></div>
+  <div class="top-r">
+    <span class="clockbox"><span class="clock" id="clock"></span>
+      <button type="button" class="btn ghost sm" data-act="clock" data-min="30">+30 分</button>
+      <button type="button" class="btn ghost sm" data-act="clock" data-min="120">+2 小時</button></span>
+    <button type="button" class="btn sm tour-go" data-act="tour">▶ 自動示範</button>
+    <button type="button" class="btn ghost sm" data-act="reset">重設 Demo</button>
+  </div>
+</header>
+<nav class="roles" id="roles" aria-label="切換入口（切換身分）"></nav>
+<div id="guide"></div>
+<div class="legend" aria-label="顏色說明">
+  <span class="lg-raw"><i></i>原文，不改</span>
+  <span class="lg-ai"><i></i>AI 產生，只給建議</span>
+  <span class="lg-human"><i></i>人確認或決定</span>
+  <span class="lg-guess"><i></i>【我猜的】，待確認</span>
+  <span class="lg-low"><i></i>低信心，要確認</span>
+</div>
+<main id="view"></main>
+<div id="toast" role="status" aria-live="polite"></div>
+<!--SCRIPT-->
+</body>
+</html>

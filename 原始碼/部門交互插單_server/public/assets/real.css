@@ -1,0 +1,12 @@
+/* 正式版頁面：LIFF 小頁全螢幕、生管看板頂列 */
+body.liff-page { background: #fff; min-height: 100vh; }
+body.liff-page main { padding: 0; max-width: 640px; margin: 0 auto; }
+.liff.page { position: static; inset: auto; min-height: 100vh; border-radius: 0; box-shadow: none; }
+.liff.page .liff-h { border-radius: 0; position: sticky; top: 0; z-index: 2; }
+.liff.page .liff-act { position: sticky; bottom: 0; padding-bottom: calc(10px + env(safe-area-inset-bottom)); }
+.liff-h .who { margin-left: auto; font-size: 12px; color: var(--mute); }
+body.is-busy { cursor: progress; }
+.desk-top .who { color: #BFD3E6; font-size: 12.5px; }
+.imp textarea { width: 100%; min-height: 140px; font-family: 'IBM Plex Mono', monospace; font-size: 13px; }
+.imp .errs { color: var(--r600, #B42318); font-size: 13px; margin: 6px 0 0; padding-left: 18px; }
+.err-box { border: 1.5px dashed #B42318; background: #FFF5F5; padding: 10px 12px; border-radius: 8px; font-size: 13.5px; }
