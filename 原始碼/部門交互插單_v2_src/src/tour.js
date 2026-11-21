@@ -8,7 +8,9 @@
   const reduce = root.matchMedia && root.matchMedia('(prefers-reduced-motion: reduce)').matches;
   const sleep = ms => new Promise(r => setTimeout(r, ms));
 
-  let speed = 1, paused = false, stopped = false;
+  const defaultSpeed = 2;
+  const speeds = [0.6, 1, 2, 3];
+  let speed = defaultSpeed, paused = false, stopped = false;
   let cur, ring, card, shield, elCh, elTx, elBar, elPause, elSpeed;
 
   class Stop extends Error {}
@@ -53,7 +55,7 @@
     card.innerHTML = '<div class="tour-bar" aria-hidden="true"><i></i></div>' +
       '<div class="tour-ch"></div><p class="tour-tx" aria-live="polite"></p>' +
       '<div class="tour-act"><button type="button" class="tour-b" data-tour="pause">暫停</button>' +
-      '<button type="button" class="tour-b" data-tour="speed">速度 1×</button>' +
+      '<button type="button" class="tour-b" data-tour="speed">速度 ' + speed + '×</button>' +
       '<button type="button" class="tour-b end" data-tour="stop">結束示範</button></div>';
     document.body.append(shield, ring, cur, card);
     elCh = card.querySelector('.tour-ch'); elTx = card.querySelector('.tour-tx'); elBar = card.querySelector('.tour-bar i');
@@ -62,7 +64,7 @@
       const b = e.target.closest('[data-tour]'); if (!b) return;
       const k = b.dataset.tour;
       if (k === 'pause') { paused = !paused; b.textContent = paused ? '繼續' : '暫停'; card.classList.toggle('paused', paused); }
-      if (k === 'speed') { speed = speed === 1 ? 2 : speed === 2 ? 0.6 : 1; b.textContent = '速度 ' + (speed === 0.6 ? '慢' : speed + '×'); }
+      if (k === 'speed') { speed = speeds[(speeds.indexOf(speed) + 1) % speeds.length]; b.textContent = '速度 ' + (speed === 0.6 ? '慢' : speed + '×'); }
       if (k === 'stop' || k === 'close') { stopped = true; if (k === 'close' || !T.active) finish(); }
       if (k === 'again') { finish(); start(); }
     });
@@ -234,7 +236,7 @@
 
   async function start() {
     if (T.active) return;
-    stopped = false; paused = false; speed = 1;
+    stopped = false; paused = false; speed = defaultSpeed;
     T.active = true;
     mount();
     try {

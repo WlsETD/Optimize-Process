@@ -144,22 +144,20 @@ function parseMonthBook(wb, fileName) {
 /* ---- 畫面 ---- */
 function monthUI() {
   const nav = $('#nav .navr'); if (!nav) return;
-  const b = el('button', 'btn sm', CUR ? CM.ym.slice(5) + '月*' : '資料月份');
-  b.type = 'button'; b.id = 'monthBtn'; b.title = '換成另一個月的資料（例如 AI 模擬的月份）'; b.setAttribute('aria-haspopup', 'dialog');
+  const b = el('button', 'btn sm nav-utility', '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4m8-4v4m-8 7h2m4 0h2m-8 3h2"/></svg>');
+  const label = '資料月份' + (CUR ? '：' + CM.ym : '');
+  b.type = 'button'; b.id = 'monthBtn'; b.title = label; b.setAttribute('aria-label', label); b.setAttribute('aria-haspopup', 'dialog');
   nav.insertBefore(b, nav.firstChild);
   const ov = el('div', 'ovl ovl-c'); ov.id = 'monthOvl'; ov.setAttribute('role', 'dialog'); ov.setAttribute('aria-modal', 'true'); ov.setAttribute('aria-labelledby', 'monthTtl');
   ov.innerHTML = '<div class="box" style="max-width:560px"><div class="hd"><b id="monthTtl" style="font-size:14px">資料月份</b><span style="flex:1"></span><button type="button" class="btn sm" id="monthX">關閉</button></div>'
     + '<div class="mbody" id="monthBody"></div></div>';
   document.body.appendChild(ov);
   const body = $('#monthBody');
-  const now = CUR
-    ? '<p>目前的基準月：<b>' + CM.ym + '</b>' + (CM.ai ? '<span class="tag AI模擬" style="margin-left:6px">AI模擬</span>' : '<span class="tag 匯入" style="margin-left:6px">匯入</span>') + '</p>'
-      + '<p class="note">檔案：' + (CM.file || '（未記錄）') + (CUR.seed ? '　種子 ' + CUR.seed : '') + '。工作日 ' + CUR.days.length + ' 天、出貨 ' + f1(SEP.s[2]) + ' 千片、準時率 ' + f0(SEP.s[3] * 100) + '%、加班 ' + f0(SEP.s[4]) + ' h、插單 ' + SEP.s[1] + ' 件。</p>'
-      + (CUR.events && CUR.events.length ? '<ul class="note mev">' + CUR.events.map(e => '<li>' + e + '</li>').join('') + '</ul>' : '')
-    : '<p>目前的基準月：<b>2026/09（個案資料）</b><span class="tag 資料3" style="margin-left:6px">資料3</span></p>';
+  const now = '<p>目前月份：<b>' + (CUR ? CM.ym : '2026/09') + '</b>'
+    + (CUR ? (CM.ai ? '<span class="tag AI模擬" style="margin-left:6px">AI模擬</span>' : '<span class="tag 匯入" style="margin-left:6px">匯入</span>')
+      : '<span class="tag 資料3" style="margin-left:6px">個案資料</span>') + '</p>';
   body.innerHTML = now
-    + '<p class="note">匯入一個月的 Excel 後，「導入前」、月度指標、月效益、單月回放、模擬班表都改用那個月；模型公式仍由個案十二個月擬合。單日重播的 9/17 仍是個案原始資料，下拉選單會多出新月份有插單的日子。</p>'
-    + '<p class="note">檔案格式同資料1＋資料3：要有「每日紀錄」「SMT開機與停機」「產銷概況」三張工作表（欄位名稱相同）；「現場概況」「損失與客戶」可省略。AI 模擬月份可用 <code>gen_month.py</code> 產生（放在 原始碼\\月份產生器）。</p>'
+    + '<p class="note">必要工作表：每日紀錄、SMT開機與停機、產銷概況。</p>'
     + '<div class="mrow"><label class="btn pri" for="monthFile">選擇 Excel 檔…</label><input type="file" id="monthFile" accept=".xlsx,.xls" hidden>'
     + (CUR ? '<button type="button" class="btn" id="monthReset">回到九月（個案資料）</button>' : '') + '</div>'
     + '<div id="monthMsg" class="mmsg" aria-live="polite"></div>';

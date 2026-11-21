@@ -4,13 +4,12 @@
    ===================================================================== */
 const RS = (function(){
   const D = [["09-01", 0, 0, 5, 4, 5], ["09-02", 0, 1, 7, 6, 7], ["09-03", 0, 0, 7, 6, 7], ["09-04", 0, 1, 7, 6, 7], ["09-05", 1, 0, 2, 2, 2], ["09-07", 0, 0, 5, 4.5, 5], ["09-08", 0, 1, 7, 6, 7], ["09-09", 0, 0, 5, 4.5, 5], ["09-10", 0, 1, 6, 5.5, 6], ["09-11", 0, 0, 5, 4.5, 5], ["09-12", 1, 0, 2, 2, 2], ["09-14", 0, 1, 8, 7, 8], ["09-15", 0, 0, 5, 4.5, 5], ["09-16", 0, 1, 7, 6, 7], ["09-17", 0, 1, 9, 8.5, 9], ["09-18", 0, 0, 6, 5.5, 6], ["09-19", 1, 0, 3, 2.5, 3], ["09-21", 0, 1, 8, 7, 8], ["09-22", 0, 1, 5, 4, 5], ["09-23", 0, 0, 5, 4.5, 5], ["09-24", 0, 1, 8, 7, 8], ["09-25", 0, 0, 5, 4.5, 5], ["09-26", 1, 0, 2, 2, 2], ["09-28", 0, 1, 7, 6.5, 7], ["09-29", 0, 0, 5, 4.5, 5], ["09-30", 0, 1, 7, 8, 7]];   // [日期, 是否週六, 有追加單或換零件, SMT機台換線次, 換線停機小時, 課長日報換線次]
-  const PRICE=1200, RATE={乙:0.02,丙:0.01,甲:0}, RN={乙:'2%／天',丙:'1%／天',甲:'無罰則'};
   const HOURS=(760+133)/26, CO_PER_DAY=148/26, OLD_CO=0.5*4, PCS=150;
   let N_AVG=0,H_ALL=0,sn=0,nn=0,si=0,ni=0;
   D.forEach(r=>{N_AVG+=r[3];H_ALL+=r[4];if(r[2]){si+=r[3];ni++}else{sn+=r[3];nn++}});
   const N_NORM=sn/nn, N_INS=si/ni, AVG_T=H_ALL/N_AVG, CO_AVG=N_AVG/D.length;
   const G=id=>document.getElementById('rs_'+id);
-  const st={cust:'乙',meth:'ewma',view:'calc',lastEst:0.9,A:{}};
+  const st={meth:'ewma',view:'calc',lastEst:0.9,A:{}};
   const fmt=n=>Math.round(n).toLocaleString('en-US');
   const mean=a=>a.length?a.reduce((x,y)=>x+y,0)/a.length:0;
   function sz(svg){const r=svg.getBoundingClientRect();if(r.width<20||r.height<20)return null;svg.setAttribute('viewBox','0 0 '+r.width+' '+r.height);return {W:r.width,H:r.height}}
@@ -29,12 +28,7 @@ const RS = (function(){
     G('oldOut').textContent=fmt(oldOut)+' 片'; G('newOut').textContent=fmt(newOut)+' 片';
     G('oldFin').textContent='第 '+oldD.toFixed(1)+' 個工作日'; G('newFin').textContent='第 '+newD.toFixed(1)+' 個工作日';
     G('oldDay').textContent='第 '+oldDay+' 天完成'; G('newDay').textContent='第 '+newDay+' 天完成';
-    const r=G('result'), c=st.cust, amount=qty*PRICE, rate=RATE[c], oL=Math.max(0,oldDay-due), nL=Math.max(0,newDay-due); let h;
-    if(!oL&&!nL){r.className='rsres ok';h='兩種算法都趕得上第 '+due+' 天，客戶'+c+'的這張單可以回覆。現行排程比實際樂觀約 '+Math.abs(oldD-newD).toFixed(1)+' 天。'}
-    else if(!oL&&nL){r.className='rsres bad';h='<b>現行排程會說「可以」，實際會晚 '+nL+' 天。</b> '+(rate?'客戶'+c+'罰款率 '+RN[c]+'，該批金額 '+(amount/1e4).toFixed(1)+' 萬 → 罰款約 <b>'+(amount*rate*nL/1e4).toFixed(2)+' 萬</b>。':'客戶甲沒有合約罰則，但晚 '+nL+' 天，關係風險要自己判斷。')+' 改用實際換線時間，回覆前就會提醒。'}
-    else if(oL&&nL){r.className='rsres bad';h='兩種算法都趕不上：現行排程晚 '+oL+' 天，實際晚 '+nL+' 天。'+(rate?'以實際為準，客戶'+c+'罰款約 <b>'+(amount*rate*nL/1e4).toFixed(2)+' 萬</b>。':'客戶甲沒有合約罰則。')}
-    else{r.className='rsres ok';h='現行排程算會晚，實際反而趕得上（換線時間比 0.5×4 線還短時才會出現）。'}
-    r.innerHTML=h; drawC(due,oldD,newD);
+    drawC(due,oldD,newD);
   }
   function drawC(due,oldD,newD){
     const svg=G('chC'),s=sz(svg);if(!s)return;
@@ -113,22 +107,32 @@ const RS = (function(){
     G('missV').textContent=m+' 次';
     G('missN').textContent=m?'平均變成 '+avg.toFixed(2)+' 小時（實際 '+AVG_T.toFixed(2)+'），每天預估產出高估約 '+Math.round(over)+' 片：漏記越多，預估越樂觀。':'沒有漏記時，平均就是九月的 0.90 小時。';
   }
+  const tabs = Array.from(G('sub').querySelectorAll('button'));
+  const views = tabs.map(tab => tab.dataset.v);
   function setView(v){
+    if (!views.includes(v)) return;
     st.view=v;
-    ['calc','auto','check','source'].forEach(x=>G('v_'+x).classList.toggle('on',x===v));
-    document.querySelectorAll('#rs_sub button').forEach(b=>b.classList.toggle('on',b.dataset.v===v));
+    tabs.forEach(tab => {
+      const active = tab.dataset.v === v;
+      tab.classList.toggle('on', active);
+      G('v_' + tab.dataset.v).classList.toggle('on', active);
+    });
     requestAnimationFrame(render);
   }
   function render(){calc();auto();quality()}
   function segOn(box,b){box.querySelectorAll('button').forEach(x=>x.classList.toggle('on',x===b))}
   // 事件
-  document.querySelectorAll('#rs_sub button').forEach(b=>b.addEventListener('click',()=>setView(b.dataset.v)));
+  tabs.forEach(b=>b.addEventListener('click',()=>setView(b.dataset.v)));
   ['qty','due','ahead','hco','cmode','pday'].forEach(id=>G(id).addEventListener('input',calc));
-  document.querySelectorAll('#rs_cust button').forEach(b=>b.addEventListener('click',()=>{st.cust=b.dataset.c;segOn(G('cust'),b);calc()}));
+  document.querySelectorAll('#rs_cust button').forEach(b=>b.addEventListener('click',()=>{segOn(G('cust'),b)}));
   document.querySelectorAll('#rs_meth button').forEach(b=>b.addEventListener('click',()=>{st.meth=b.dataset.m;segOn(G('meth'),b);G('alphaBox').hidden=st.meth!=='ewma';G('winBox').hidden=st.meth!=='win';auto()}));
   ['alpha','win','start','known','kmul','excl'].forEach(id=>G(id).addEventListener('input',auto));
   G('miss').addEventListener('input',quality);
   G('apply').addEventListener('click',()=>{G('hco').value=Math.min(1.4,Math.max(0.5,st.lastEst)).toFixed(2);setView('calc')});
   window.addEventListener('resize',()=>{if(document.body.dataset.page==='sched')render()});
-  return {render,setView,step:d=>{const vs=['calc','auto','check','source'];setView(vs[(vs.indexOf(st.view)+d+4)%4])}};
+  function step(direction) {
+    const next = (views.indexOf(st.view) + direction + views.length) % views.length;
+    setView(views[next]);
+  }
+  return {render,setView,step};
 })();

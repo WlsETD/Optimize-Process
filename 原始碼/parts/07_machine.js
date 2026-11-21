@@ -85,8 +85,9 @@ function mdEnsure3D() {
 }
 function mdResize() {
   if (!MD.r || !MD.host) return;
-  const w = MD.host.clientWidth || 800, h = 420;
-  MD.r.setSize(w, h); MD.cam.aspect = w / h; MD.cam.updateProjectionMatrix();
+  const w = MD.host.clientWidth, h = MD.host.clientHeight;
+  if (!w || !h) return;
+  MD.r.setSize(w, h, false); MD.cam.aspect = w / h; MD.cam.updateProjectionMatrix();
 }
 function mdDispose() {
   if (MD.r) { MD.r.dispose(); try { MD.r.forceContextLoss(); } catch (e) {} if (MD.r.domElement && MD.r.domElement.parentNode) MD.r.domElement.parentNode.removeChild(MD.r.domElement); }
@@ -168,14 +169,15 @@ function mdSpecs() {
 
 function mdOpen() {
   const m = $('#mdl');
+  $('#dayLogs').hidePopover();
   $('#mdbody').innerHTML =
-    '<section><h3>機器（3D 示意）</h3>'
+    '<section class="md-preview"><h3>機器（3D 示意）</h3>'
     + '<div class="md3d" id="md3d"><div class="mdhud"><span class="c" id="mdC">第 0 分</span><span class="p" id="mdP"></span><span class="p" id="mdS"></span></div></div>'
-    + '<div class="mdctl" style="margin-top:8px"><button type="button" class="btn sm pri" id="mdPlay">❚❚ 暫停</button><input type="range" id="mdScrub" min="0" max="54" step="0.1" value="0" aria-label="拖曳換線時間"></div>'
-    + '<p class="note" style="margin-top:6px">機台外觀用 Blender 重新建模（通用 SMT 線：上板機、印刷機、SPI、貼片機、迴焊爐、AOI、收板機、飛達台車），不是昇嶺的實際機型。拖曳可旋轉、滾輪縮放。橘色飛達＝新料，灰色＝舊料；動畫 1 分鐘約 0.18 秒，只示意新飛達從料車換到機台上，不代表實際步驟與時間。</p>'
-    + '<div style="margin-top:10px">' + mdSpecs() + '</div></section>'
+    + '<div class="mdctl"><button type="button" class="btn sm pri" id="mdPlay">❚❚ 暫停</button><input type="range" id="mdScrub" min="0" max="54" step="0.1" value="0" aria-label="拖曳換線時間"></div>'
+    + '</section><details class="md-details" id="mdDetails"><summary>詳細資訊</summary>'
+    + '<section>' + mdSpecs() + '</section>'
     + '<section><h3>一次換線（資料只有平均時間）</h3>' + mdChangeover() + '</section>'
-    + '<section><h3>換線標準化與外部化的取捨</h3>' + mdStandard() + '</section>';
+    + '<section><h3>換線標準化與外部化的取捨</h3>' + mdStandard() + '</section></details>';
   m.classList.add('on'); MD.open = true; MD.m = 0; MD.playing = !REDUCED; MD.hud = {};
   mdEnsure3D();
   mdBindBody();
@@ -189,6 +191,7 @@ function mdClose() {
   mdDispose(); $('#mdbody').innerHTML = '';
 }
 function mdBindBody() {
+  $('#mdDetails').addEventListener('toggle', () => requestAnimationFrame(mdResize));
   $('#mdPlay').addEventListener('click', () => { MD.playing = !MD.playing; $('#mdPlay').textContent = MD.playing ? '❚❚ 暫停' : '▶ 播放'; });
   $('#mdScrub').addEventListener('input', e => { MD.m = +e.target.value; MD.playing = false; $('#mdPlay').textContent = '▶ 播放'; });
 }

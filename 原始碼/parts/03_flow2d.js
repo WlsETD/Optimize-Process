@@ -7,13 +7,19 @@ const F2 = {};
 function sel(tag, attrs, parent, text) { const e = document.createElementNS(NS, tag); for (const k in attrs) e.setAttribute(k, attrs[k]);
   if (text != null) e.textContent = text; (parent || F2.svg).appendChild(e); return e; }
 /* 節點位置 [x, y, w, h] */
-const NODES = {
-  ja:[16,14,150,58], jb:[16,84,150,58], jc:[16,154,150,58],
-  boss:[214,14,184,64], ai:[214,124,184,64],
-  sales:[446,14,190,64], plan:[684,14,196,64], wh:[684,124,196,64],
-  smt:[928,68,214,64], qa:[1190,14,166,64], man:[1190,124,166,64], ship:[1376,68,110,64]
+const COMPACT_NODES = {
+  ja:[16,18,134,48], jb:[16,78,134,48], jc:[16,138,134,48],
+  boss:[192,18,150,55], ai:[192,117,150,55],
+  sales:[386,18,150,55], plan:[580,18,150,55], wh:[580,117,150,55],
+  smt:[763,77,182,60], qa:[763,228,182,51], man:[548,228,158,51], ship:[354,228,147,51]
 };
-function anchor(id, side) { const [x,y,w,h] = NODES[id]; return side === 'r' ? [x+w, y+h/2] : side === 'l' ? [x, y+h/2] : side === 'b' ? [x+w/2, y+h] : [x+w/2, y]; }
+const WIDE_NODES = {
+  ja:[16,16,152,46], jb:[16,70,152,46], jc:[16,124,152,46],
+  boss:[210,16,164,51], ai:[210,94,164,51], sales:[422,16,174,51],
+  plan:[650,16,171,51], wh:[650,91,171,52], smt:[867,55,194,55],
+  qa:[1102,16,171,51], man:[1102,94,171,51], ship:[1297,55,126,55]
+};
+function anchor(id, side) { const [x,y,w,h] = F2.layout.nodes[id]; return side === 'r' ? [x+w, y+h/2] : side === 'l' ? [x, y+h/2] : side === 'b' ? [x+w/2, y+h] : [x+w/2, y]; }
 function curve(a, b) { const mx = (a[0]+b[0])/2; return 'M'+a[0]+','+a[1]+' C'+mx+','+a[1]+' '+mx+','+b[1]+' '+b[0]+','+b[1]; }
 function arc(a, b, up) { const my = up; return 'M'+a[0]+','+a[1]+' C'+a[0]+','+my+' '+b[0]+','+my+' '+b[0]+','+b[1]; }
 /* 連線：key 為兩端（不分方向），路徑方向為 a→b */
@@ -25,53 +31,88 @@ const EDGES = {
   'ai|sales':   () => curve(anchor('ai','r'), anchor('sales','l')),
   'sales|plan': () => curve(anchor('sales','r'), anchor('plan','l')),
   'plan|boss':  () => arc(anchor('plan','t'), anchor('boss','t'), -6),
-  'sales|ja':   () => arc(anchor('sales','t'), anchor('ja','t'), -10),
-  'sales|jc':   () => 'M'+anchor('sales','b')[0]+','+anchor('sales','b')[1]+' C'+anchor('sales','b')[0]+',230 '+(NODES.jc[0]+NODES.jc[2]+40)+',200 '+anchor('jc','r')[0]+','+anchor('jc','r')[1],
+  'sales|ja':   () => arc(anchor('sales','t'), anchor('ja','t'), -4),
+  'sales|jc':   () => {
+    const from = anchor('sales','b'), to = anchor('jc','r');
+    const lane = F2.layout.wide ? 176 : 230;
+    return 'M'+from[0]+','+from[1]+' C'+from[0]+','+lane+' '+(to[0]+40)+','+(lane-30)+' '+to[0]+','+to[1];
+  },
   'plan|smt':   () => curve(anchor('plan','r'), anchor('smt','l')),
   'plan|wh':    () => 'M'+anchor('plan','b')[0]+','+anchor('plan','b')[1]+' V'+anchor('wh','t')[1],
   'wh|smt':     () => curve(anchor('wh','r'), anchor('smt','l')),
-  'smt|man':    () => curve(anchor('smt','r'), anchor('man','l')),
-  'man|ship':   () => curve(anchor('man','r'), anchor('ship','l')),
-  'smt|qa':     () => curve(anchor('smt','r'), anchor('qa','l'))
+  'smt|man':    () => F2.layout.wide ? curve(anchor('smt','r'), anchor('man','l')) : curve(anchor('smt','l'), anchor('man','r')),
+  'man|ship':   () => F2.layout.wide ? curve(anchor('man','r'), anchor('ship','l')) : curve(anchor('man','l'), anchor('ship','r')),
+  'smt|qa':     () => F2.layout.wide ? curve(anchor('smt','r'), anchor('qa','l')) : curve(anchor('smt','b'), anchor('qa','t'))
 };
 const EDGE_LABEL = { 'ja|boss':'LINE', 'boss|sales':'LINE', 'sales|plan':'', 'plan|smt':'', 'boss|ai':'轉傳', 'ai|sales':'需求單', 'wh|smt':'料車', 'smt|man':'板子', 'man|ship':'成品' };
 const STN = ['印錫膏','高速機','泛用機','回焊'];
-const DS = [['插件',700],['測試',870],['組裝',1040],['包裝',1210]];
-const LY0 = 262, LDY = 56, MY = 360;
+const FLOW_LAYOUTS = {
+  compact:{nodes:COMPACT_NODES, viewBox:'0 -8 960 540', y:321, laneGap:51, railY:413, railDrop:41,
+    stationX:74, stationGap:70, stationWidth:64, stationHeight:34, statusX:360,
+    bend:[424,463,470], rear:[503,590,677,764], rearWidth:77, shipX:851, end:945, rearHeight:190},
+  wide:{wide:true, nodes:WIDE_NODES, viewBox:'0 -9 1440 402', y:211, laneGap:42, railY:295, railDrop:36,
+    stationX:86, stationGap:88, stationWidth:80, stationHeight:31, statusX:445,
+    bend:[540,590,604], rear:[658,807,956,1105], rearWidth:132, shipX:1254, end:1423, rearHeight:165},
+};
+const DOWNSTREAM = ['插件','測試','組裝','包裝'];
 
-function build2D() {
-  const svg = $('#f2'); svg.innerHTML = ''; F2.svg = svg; F2.edges = {}; F2.nodes = {}; F2.lines = []; F2.ds = [];
+function build2D(name = 'compact') {
+  const svg = $('#f2');
+  if (!F2.svg && window.ResizeObserver) new ResizeObserver(([entry]) => {
+    const {width, height} = entry.contentRect;
+    if (!width || !height) return;
+    const next = width >= 720 && width / height >= 2.7 ? 'wide' : 'compact';
+    if (svg.dataset.layout === next) return;
+    build2D(next);
+    render2D(S.t, 0);
+  }).observe(svg.parentElement);
+  const layout = F2.layout = FLOW_LAYOUTS[name];
+  const priorPhases = F2.lines?.map(line => line.ph) || [];
+  const {nodes, y: firstLane, railY, rear, shipX} = layout;
+  const shipWidth = layout.end - shipX;
+  svg.dataset.layout = name; svg.setAttribute('viewBox', layout.viewBox);
+  svg.innerHTML = ''; F2.svg = svg; F2.edges = {}; F2.nodes = {}; F2.lines = []; F2.ds = [];
   for (const k in EDGES) { const p = sel('path', { d:EDGES[k](), class:'ed' }); F2.edges[k] = p; }
   F2.elab = {};
   for (const k in EDGE_LABEL) { const p = F2.edges[k], L = p.getTotalLength(), pt = p.getPointAtLength(L/2);
     F2.elab[k] = sel('text', { x:pt.x, y:pt.y - 6, class:'el', 'text-anchor':'middle' }, null, EDGE_LABEL[k]); }
-  for (const id in NODES) { const [x,y,w,h] = NODES[id]; const g = sel('g', { class:'nd' });
-    sel('rect', { x, y, width:w, height:h, rx:8 }, g); sel('text', { x:x+12, y:y+25, class:'h' }, g, NODE_NAME[id]);
-    const s = sel('text', { x:x+12, y:y+47, class:'s' }, g, ''); F2.nodes[id] = { g, s }; }
-  F2.whS1 = sel('text', { x:NODES.wh[0]+4, y:NODES.wh[1]+NODES.wh[3]+18, class:'whs' }, null, '');
-  F2.whS2 = sel('text', { x:NODES.wh[0]+4, y:NODES.wh[1]+NODES.wh[3]+34, class:'whs' }, null, '');
+  for (const id in nodes) { const [x,y,w,h] = nodes[id]; const g = sel('g', { class:'nd' });
+    sel('rect', { x, y, width:w, height:h, rx:8 }, g); sel('text', { x:x+12, y:y+21, class:'h' }, g, NODE_NAME[id]);
+    const s = sel('text', { x:x+12, y:y+40, class:'s' }, g, ''); F2.nodes[id] = { g, s }; }
+  F2.whS1 = sel('text', { x:nodes.wh[0]+4, y:nodes.wh[1]+nodes.wh[3]+18, class:'whs' }, null, '');
+  F2.whS2 = sel('text', { x:nodes.wh[0]+4, y:nodes.wh[1]+nodes.wh[3]+34, class:'whs' }, null, '');
   F2.pk = sel('circle', { r:8, class:'pk', visibility:'hidden' });
   F2.pkl = sel('text', { class:'pkl', 'text-anchor':'middle', visibility:'hidden' }, null, '');
-  sel('text', { x:16, y:LY0 - 14, class:'sec' }, null, 'SMT 四線（速度由機台決定，每線每小時 150 片）');
+  sel('text', { x:16, y:firstLane - 14, class:'sec' }, null, 'SMT 四線（速度由機台決定，每線每小時 150 片）');
   for (let l = 1; l <= LINES; l++) {
-    const y = LY0 + (l-1)*LDY, L = { stations:[], dots:[] };
+    const y = firstLane + (l-1)*layout.laneGap, L = { stations:[], dots:[] };
     sel('text', { x:16, y:y+22, class:'ln' }, null, l + ' 線'); L.m = sel('text', { x:16, y:y+40, class:'lm' }, null, LINE_BASE[l].join(' '));
-    const rail = sel('path', { d:'M86,'+(y+46)+' H560 C625,'+(y+46)+' 630,'+MY+' 700,'+MY, class:'rail' }); L.rail = rail; L.len = rail.getTotalLength();
-    STN.forEach((n,i) => { const g = sel('g', { class:'st run' }); sel('rect', { x:86+i*92, y, width:84, height:34, rx:6 }, g);
-      sel('text', { x:86+i*92+42, y:y+22, 'text-anchor':'middle' }, g, n); L.stations.push(g); });
-    L.txt = sel('text', { x:462, y:y+22, class:'stt run' }, null, '運轉中');
+    const railStartY = y + layout.railDrop, [bendStart, bendControl, bendEnd] = layout.bend;
+    const rail = sel('path', { d:'M'+layout.stationX+','+railStartY+' H'+bendStart+' C'+bendControl+','+railStartY+' '+bendEnd+','+railY+' '+rear[0]+','+railY, class:'rail' });
+    L.rail = rail; L.len = rail.getTotalLength();
+    STN.forEach((n,i) => {
+      const g = sel('g', {class:'st run'}), x = layout.stationX + i * layout.stationGap;
+      sel('rect', {x, y, width:layout.stationWidth, height:layout.stationHeight, rx:6}, g);
+      sel('text', {x:x+layout.stationWidth/2, y:y+22, 'text-anchor':'middle'}, g, n); L.stations.push(g);
+    });
+    L.txt = sel('text', {x:layout.statusX, y:y+22, class:'stt run'}, null, '運轉中');
     for (let k = 0; k < 5; k++) L.dots.push(sel('circle', { r:5, class:'dot' }));
-    L.ph = (l*0.23) % 1; F2.lines.push(L);
+    L.ph = priorPhases[l-1] ?? (l*0.23) % 1; F2.lines.push(L);
   }
-  const main = sel('path', { d:'M700,'+MY+' H1490', class:'rail' }); F2.main = main; F2.mlen = main.getTotalLength();
-  DS.forEach(([n,x]) => { const g = sel('g', { class:'ds' }); sel('rect', { x, y:LY0, width:150, height:190, rx:8 }, g);
-    sel('text', { x:x+12, y:LY0+26, class:'h' }, g, n); const s = sel('text', { x:x+12, y:LY0+50, class:'s' }, g, '有板可做'); F2.ds.push({ g, s, n }); });
-  const sg = sel('g', { class:'ship' }); sel('rect', { x:1376, y:LY0, width:110, height:190, rx:8 }, sg);
-  sel('text', { x:1431, y:LY0+26, class:'h', 'text-anchor':'middle' }, sg, '出貨');
-  F2.ship = sel('text', { x:1431, y:LY0+76, class:'v', 'text-anchor':'middle' }, sg, '0');
-  sel('text', { x:1431, y:LY0+98, class:'s', 'text-anchor':'middle' }, sg, '片｜今天 SMT 產出');
+  const main = sel('path', { d:'M'+rear[0]+','+railY+' H'+layout.end, class:'rail' }); F2.main = main; F2.mlen = main.getTotalLength();
+  DOWNSTREAM.forEach((n,i) => {
+    const x = rear[i], g = sel('g', {class:'ds'});
+    sel('rect', {x, y:firstLane, width:layout.rearWidth, height:layout.rearHeight, rx:8}, g);
+    sel('text', {x:x+12, y:firstLane+26, class:'h'}, g, n);
+    const s = sel('text', {x:x+12, y:firstLane+50, class:'s'}, g, '有板可做'); F2.ds.push({g, s, n});
+  });
+  const sg = sel('g', {class:'ship'}), shipCenter = shipX + shipWidth / 2;
+  sel('rect', {x:shipX, y:firstLane, width:shipWidth, height:layout.rearHeight, rx:8}, sg);
+  sel('text', {x:shipCenter, y:firstLane+26, class:'h', 'text-anchor':'middle'}, sg, '出貨');
+  F2.ship = sel('text', {x:shipCenter, y:firstLane+67, class:'v', 'text-anchor':'middle'}, sg, '0');
+  sel('text', {x:shipCenter, y:firstLane+89, class:'s', 'text-anchor':'middle'}, sg, '片｜SMT 產出');
   F2.mdots = []; for (let k = 0; k < 14; k++) F2.mdots.push(sel('circle', { r:5, class:'dot' }));
-  F2.mph = 0;
+  F2.mph ??= 0;
 }
 function edgeFor(a, b) {
   if (F2.edges[a+'|'+b]) return { p:F2.edges[a+'|'+b], rev:false, key:a+'|'+b };
@@ -105,7 +146,7 @@ function render2D(t, dt) {
       const L = ed.p.getTotalLength(); let fr = (t - e.t) / Math.max(e.dur, 0.06); if (ed.rev) fr = 1 - fr;
       const pt = ed.p.getPointAtLength(L * fr);
       F2.pk.setAttribute('cx', pt.x); F2.pk.setAttribute('cy', pt.y); F2.pk.setAttribute('class', 'pk k-' + e.kind);
-      F2.pkl.setAttribute('x', pt.x); F2.pkl.setAttribute('y', pt.y - 14); F2.pkl.textContent = e.kind + '｜' + e.fly; shown = true;
+      F2.pkl.setAttribute('x', pt.x); F2.pkl.setAttribute('y', pt.y < 30 ? pt.y + 23 : pt.y - 14); F2.pkl.textContent = e.kind + '｜' + e.fly; shown = true;
     }
   }
   F2.pk.setAttribute('visibility', shown ? 'visible' : 'hidden'); F2.pkl.setAttribute('visibility', shown ? 'visible' : 'hidden');

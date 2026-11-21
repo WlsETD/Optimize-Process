@@ -5,7 +5,7 @@ const el = (t, c, h) => { const n = document.createElement(t); if (c) n.classNam
 const f0 = v => Math.round(v).toLocaleString('en-US');
 const f1 = v => (Math.round(v*10)/10).toFixed(1);
 const OFFICE = new Set(['ja','jb','jc','boss','ai','sales','plan']);
-const S = { mode:'before', t:DAY.H0, playing:!REDUCED, speed:1, auto:true, view:'auto',
+const S = { mode:'before', t:DAY.H0, playing:!REDUCED, speed:2, auto:true, view:'auto',
   ids:[], strength:1, plan:null, events:[], other:null, metric:'ship', hoverX:null, sc:null };
 const SPAN = () => DAY.H1 - DAY.H0;
 
@@ -32,9 +32,14 @@ function rebuildDay(keepT) {
 }
 function setMode(m) {
   if (m === 'after' && !S.ids.length) { S.ids = P1_IDS.slice(); onFeatures(); toast('已勾選第一階段：單一插單入口＋交期試算閘門'); }
-  S.mode = m; S.playing = !REDUCED; S.auto = S.view === 'auto' || S.auto;
-  document.querySelectorAll('.mode button').forEach(b => b.classList.toggle('on', b.dataset.m === m));
-  rebuildDay(false); playBtn();
+  const replayPage = document.body.dataset.page === 'day';
+  S.mode = m; S.playing = replayPage && !REDUCED; S.auto = S.view === 'auto' || S.auto;
+  document.querySelectorAll('.mode button').forEach(button => {
+    const active = button.dataset.m === m;
+    button.classList.toggle('on', active);
+    button.setAttribute('aria-pressed', String(active));
+  });
+  rebuildDay(!replayPage); playBtn();
 }
 function isSlow(t) { return S.slow.some(w => t >= w[0] && t < w[1]); }
 function changedLines(P) { let n = 0; for (let l = 1; l <= LINES; l++) if (P.lines[l].segs.some(g => g.k === 'co')) n++; return n; }
@@ -51,22 +56,31 @@ function buildLower() {
   }
   h += '<div></div><div class="axis">' + [8,10,12,14,16,18].filter(x => x < DAY.H1 - 0.6).map(x => '<span style="left:' + ((x-DAY.H0)/sp*100) + '%">' + String(x).padStart(2,'0') + '</span>').join('')
     + '<span style="left:100%;transform:translateX(-100%)">' + hhmm(DAY.H1) + '</span></div>';
-  h += '<div class="lab">回放<small>點時間條也能跳</small></div><div class="rpc">'
-    + '<button type="button" class="btn" id="rpRestart" title="回到 ' + hhmm(DAY.H0) + '">⟲</button>'
-    + '<button type="button" class="btn" id="rpPrev" title="上一個事件（,）">◀ 上一事件</button>'
+  $('#dayTracks').innerHTML = h;
+  h = '<div class="rpc" role="group" aria-label="回放控制">'
     + '<button type="button" class="btn pri" id="rpPlay" title="播放／暫停（空白鍵）">❚❚ 暫停</button>'
+    + '<button type="button" class="btn" id="rpPrev" title="上一個事件（,）">◀ 上一事件</button>'
     + '<button type="button" class="btn" id="rpNext" title="下一個事件（.）">下一事件 ▶</button>'
-    + '<span class="rpt"><b id="rpt">' + hhmm(S.t) + '</b> / ' + hhmm(DAY.H1) + '</span></div>';
-  h += '<div class="note" style="align-self:center">時間</div><div class="scw"><input class="scrub" id="scrub" type="range" min="' + DAY.H0 + '" max="' + DAY.H1 + '" step="0.01" value="' + S.t + '" aria-label="拖曳時間">'
+    + '<button type="button" class="btn" id="rpRestart" title="回到 ' + hhmm(DAY.H0) + '" aria-label="從頭播放">⟲</button>'
+    + '<select id="rpSpeed" aria-label="回放速度">' + $('#speed').innerHTML + '</select>'
+    + '<span class="rpt"><b id="rpt">' + hhmm(S.t) + '</b> / ' + hhmm(DAY.H1) + '</span>'
+    + '<button type="button" class="btn pri day-log-trigger" popovertarget="dayLogs" title="事件紀錄" aria-label="事件紀錄"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8.5 6h12m-12 6h12m-12 6h12"/><circle cx="4" cy="6" r=".75"/><circle cx="4" cy="12" r=".75"/><circle cx="4" cy="18" r=".75"/></svg></button></div>';
+  h += '<div class="scw"><input class="scrub" id="scrub" type="range" min="' + DAY.H0 + '" max="' + DAY.H1 + '" step="0.01" value="' + S.t + '" aria-label="拖曳時間">'
     + S.events.map(e => '<i class="tk ' + (e.cls || '') + '" style="left:' + ((e.t - DAY.H0) / sp * 100) + '%" title="' + hhmm(e.t) + ' ' + String(e.cap).replace(/"/g, '').slice(0, 40) + '"></i>').join('') + '</div>';
   $('#tl').innerHTML = h;
+  playBtn();
+  const speed = $('#speed'), replaySpeed = $('#rpSpeed');
+  replaySpeed.value = speed.value;
+  replaySpeed.addEventListener('change', () => {
+    speed.value = replaySpeed.value; speed.dispatchEvent(new Event('change', {bubbles:true}));
+  });
   $('#scrub').addEventListener('input', e => { S.t = +e.target.value; S.playing = false; playBtn(); render(0); });
   const jumpEv = dir => { const E = S.events; const e = dir < 0 ? E.slice().reverse().find(x => x.t < S.t - 0.015) : E.find(x => x.t > S.t + 0.015);
     S.t = e ? e.t + 0.001 : (dir < 0 ? DAY.H0 : DAY.H1); S.playing = false; playBtn(); render(0); };
   $('#rpPrev').addEventListener('click', () => jumpEv(-1)); $('#rpNext').addEventListener('click', () => jumpEv(1));
   $('#rpPlay').addEventListener('click', () => $('#play').click()); $('#rpRestart').addEventListener('click', () => $('#restart').click());
   window.stepEvent = jumpEv;
-  document.querySelectorAll('#tl .track').forEach(tr => {   /* 點或拖時間條跳到那個時刻 */
+  document.querySelectorAll('#dayTracks .track').forEach(tr => {   /* 點或拖時間條跳到那個時刻 */
     const seek = ev => { const r = tr.getBoundingClientRect(); S.t = DAY.H0 + Math.max(0, Math.min(1, (ev.clientX - r.left) / r.width)) * SPAN(); S.playing = false; playBtn(); render(0); };
     tr.style.cursor = 'pointer';
     tr.addEventListener('pointerdown', ev => { tr.setPointerCapture(ev.pointerId); tr._d = true; seek(ev); });
@@ -76,17 +90,24 @@ function buildLower() {
   $('#feed').innerHTML = S.events.map(e => '<li class="' + (e.cls || '') + '" data-t="' + e.t + '"><span class="t">' + hhmm(e.t) + '</span><span class="x">'
     + e.cap + (e.src ? '<span class="tag ' + e.src + '">' + e.src + '</span>' : '') + '</span></li>').join('');
   const O = S.other, oName = S.mode === 'before' ? '導入後' : '導入前', cls = S.mode === 'before' ? 'bad' : 'good';
-  const oReply = O.isBefore ? '老闆口頭「沒問題」' : (O.replyAt ? hhmm(O.replyAt) + ' 有日期' : '「會盡快」');
-  const R = DAY.RUSH, oFloor = O.isBefore ? (R.late ? '隔天' : hhmm(R.floorAt)) : (R.late ? '隔天' : hhmm(O.floorKnows));
+  const R = DAY.RUSH;
+  const oReply = O.replyAt == null ? '無日期' : hhmm(O.replyAt);
+  const oFloor = R.late && O.isBefore ? '隔天' : hhmm(O.floorKnows);
+  const compare = value => '<div class="o">' + oName + ' ' + value + '</div>';
+  dayKpiCharts.reset();
   $('#kpis').innerHTML =
-    '<div class="kpi ' + cls + '"><div class="l">比平日多停的 SMT 時數</div><div class="v" id="k-h">0.0<small>h</small></div><div class="o">' + oName + '全天：' + f1(O.extraH) + ' h（平日 9.1 h）</div></div>' +
-    '<div class="kpi ' + cls + '"><div class="l">吃掉的產能（多停 × 150）</div><div class="v" id="k-p">0<small>片</small></div><div class="o">' + oName + '全天：' + f0(O.extraH*RATE) + ' 片</div></div>' +
-    '<div class="kpi ' + cls + '"><div class="l">當天 SMT 稼動率</div><div class="v" id="k-u">–</div><div class="o">' + oName + '全天：' + Math.round(O.util*100) + '%（九月平均 76%）</div></div>' +
-    '<div class="kpi ' + cls + '"><div class="l">今天 SMT 產出</div><div class="v" id="k-o">0<small>片</small></div><div class="o">' + oName + '全天：' + f0(O.ship) + ' 片（平日 4,820）</div></div>' +
-    '<div class="kpi"><div class="l">客戶' + R.cust + '拿到交期</div><div class="v t" id="k-r">–</div><div class="o">' + oName + '：' + oReply + '</div></div>' +
-    '<div class="kpi"><div class="l">現場知道插單</div><div class="v t" id="k-f">–</div><div class="o">' + oName + '：' + oFloor + '</div></div>' +
-    '<div class="kpi"><div class="l">被插單打斷換線的線</div><div class="v" id="k-l">–</div><div class="o">' + oName + '：' + changedLines(O) + ' 條</div></div>' +
-    '<div class="kpi"><div class="l">' + R.model + (R.qty ? ' ' + f0(R.qty) + ' 片進度' : ' 換零件進度') + '</div><div class="v" id="k-a">0<small>片</small></div><div class="o" id="k-ao"></div></div>';
+    '<div class="kpi ' + cls + '"><div class="l">SMT 多停時數</div><div class="v" id="k-h">—</div>' + compare(f1(O.extraH) + ' h') + '</div>' +
+    '<div class="kpi ' + cls + '"><div class="l">損失產能</div><div class="v" id="k-p">—</div>' + compare(f0(O.extraH * RATE) + ' 片') + '</div>' +
+    '<div class="kpi day-kpi-ring-card"><div class="l">稼動率 %</div><div class="day-kpi-ring"><div class="v" id="k-u">—</div></div>'
+      + '<div class="day-kpi-ring-summary"><strong>' + Math.round(O.util * 100) + '%</strong><div class="o">' + oName + '全天</div></div></div>' +
+    '<div class="kpi ' + cls + '"><div class="l">SMT 產出</div><div class="v" id="k-o">—</div>' + compare(f0(O.ship) + ' 片') + '</div>' +
+    '<div class="kpi"><div class="l">客戶' + R.cust + '交期回覆</div><div class="v t" id="k-r">—</div>' + compare(oReply) + '</div>' +
+    '<div class="kpi"><div class="l">現場接獲通知</div><div class="v t" id="k-f">—</div>' + compare(oFloor) + '</div>' +
+    '<div class="kpi"><div class="l">受影響產線</div><div class="v" id="k-l">—</div>' + compare(changedLines(O) + ' 條') + '</div>' +
+    (R.qty
+      ? '<div class="kpi day-kpi-ring-card"><div class="l">' + R.model + ' 插單進度</div><div class="day-kpi-ring"><div class="v" id="k-a">—</div></div>'
+        + '<div class="day-kpi-ring-summary"><strong id="k-a-count"></strong><div class="o" id="k-ao"></div></div></div>'
+      : '<div class="kpi"><div class="l">' + R.model + ' 換零件</div><div class="v t" id="k-a">—</div><div class="o" id="k-ao"></div></div>');
   $('#daynote').innerHTML = DAY.DATE === 17 ? ('導入前依資料3 的 9/17：開機 47.3 h、正常運轉 27.3 h、稼動率 58%、換線 9 次 8.5 h、等料 9.0 h、拋料與故障 2.5 h、出貨 4,100 片、重測 640 片；09:10 客戶甲 LINE、10:20 現場才知道；3 線 W0915 等料 4 小時。'
     + '「平日」＝九月沒有追加單、換零件的 10 個平日（停機平均 9.1 h、出貨平均 4,820 片），所以 9/17 多停 10.9 h（換線 +3.8、等料 +7.0、故障 +0.1）；若用九月日平均 9.35 h（含週六）當基準是 10.7 h，專案文件採用這個數。'
     + '各線停在幾點、誰傳給誰的中間時間是<span class="tag 示意">示意</span>。導入後把 9/17 多停的三項乘以所勾選功能的係數（與月度模型同一組），是<span class="tag 我猜的">我猜的</span>推算方式；15:00 插單時段、時段前 1.5 小時齊料也是【我猜的】。人工站「人在等板」只是示意：兩條以上 SMT 線同時停時亮起，沒有另外建模。') : dayNoteOther();
@@ -94,31 +115,33 @@ function buildLower() {
 
 function renderLower(t) {
   const P = S.plan, sp = SPAN(), x = (t - DAY.H0) / sp * 100;
-  document.querySelectorAll('#tl .track').forEach(tr => { tr.querySelector('.fut').style.left = x + '%'; tr.querySelector('.ph').style.left = 'calc(' + x + '% - 1px)'; });
+  document.querySelectorAll('#dayTracks .track').forEach(tr => { tr.querySelector('.fut').style.left = x + '%'; tr.querySelector('.ph').style.left = 'calc(' + x + '% - 1px)'; });
   const sc = $('#scrub'); if (sc && document.activeElement !== sc) sc.value = t;
   for (let l = 1; l <= LINES; l++) { const m = lineModel(P, l, t); $('#tlm' + l).textContent = m.slice(0, 2).join(' ') + (DAY.WO[l] && !m[2] ? ' ' + DAY.WO[l] : ''); }
   const m = dayMetrics(P, t);
   $('#k-h').innerHTML = f1(m.extra) + '<small>h</small>';
   $('#k-p').innerHTML = f0(m.extra * RATE) + '<small>片</small>';
-  $('#k-u').textContent = m.util == null ? '–' : Math.round(m.util * 100) + '%';
+  $('#k-u').textContent = m.util == null ? '—' : Math.round(m.util * 100) + '%';
   $('#k-o').innerHTML = f0(m.prod) + '<small>片</small>';
-  $('#k-a').innerHTML = DAY.RUSH.qty ? f0(m.a1) + '<small>／' + f0(DAY.RUSH.qty) + ' 片</small>' : '<small>沒有追加片數</small>';
-  $('#k-ao').textContent = P.a1.doneAt != null ? hhmm(P.a1.doneAt) + ' 做完（' + P.a1Lines.join('、') + ' 線分攤）'
-    : !isFinite(P.a1.nextDayDoneAt) ? (DAY.RUSH.qty ? '今天沒動工，' + dayLabel(1) + ' 排進插單時段' : '只換零件，沒有追加片數')
-    : '今天做 ' + f0(P.a1.done) + ' 片，' + dayLabel(1) + ' 約 ' + hhmm(P.a1.nextDayDoneAt) + ' 做完';
-  const Rr = DAY.RUSH, formalDay = Rr.how === '正式單';
-  $('#k-r').textContent = t < Rr.msgAt ? '還沒收到單' : P.isBefore || P.verbal
-    ? (t >= Rr.msgAt + 0.05 ? (formalDay ? '生管照流程回覆' : P.isBefore || !P.f.intake ? '老闆口頭「沒問題」，沒有日期' : '「會盡快」，沒有日期') : '…')
-    : (t >= P.replyAt ? hhmm(P.replyAt) + ' 回覆 ' + dayLabel(P.a1.shipDay) + '12:00 前' : '試算中…');
-  $('#k-f').textContent = Rr.late && P.isBefore ? (t >= DAY.H1 - 0.01 ? '隔天才知道' : '還不知道') : t < P.floorKnows ? '還不知道'
-    : P.f.gate && !P.isBefore ? hhmm(P.floorKnows) + ' 看板（' + hhmm(P.insertAt) + ' 換線）'
-    : hhmm(P.floorKnows) + (P.isBefore ? '（晚 ' + Math.round((Rr.floorAt - Rr.msgAt) * 60) + ' 分）' : '');
+  const Rr = DAY.RUSH;
+  $('#k-a').textContent = Rr.qty ? Math.round(m.a1 / Rr.qty * 100) + '%' : '無追加片數';
+  const count = $('#k-a-count');
+  if (count) count.textContent = f0(m.a1) + ' / ' + f0(Rr.qty) + ' 片';
+  $('#k-ao').textContent = !Rr.qty ? '' : P.a1.doneAt != null ? hhmm(P.a1.doneAt) + ' 完成'
+    : isFinite(P.a1.nextDayDoneAt) ? '隔天 ' + hhmm(P.a1.nextDayDoneAt) + ' 完成' : '隔天排入';
+  $('#k-r').textContent = t < Rr.msgAt ? '未收單' : P.isBefore || P.verbal
+    ? (t < Rr.msgAt + 0.05 ? '待回覆' : Rr.how === '正式單' ? '已回覆' : '口頭回覆・無日期')
+    : (t >= P.replyAt ? hhmm(P.replyAt) + ' 回覆｜' + dayLabel(P.a1.shipDay) + ' 12:00 前' : '試算中');
+  $('#k-f').textContent = Rr.late && P.isBefore ? (t >= DAY.H1 - 0.01 ? '隔天通知' : '待通知') : t < P.floorKnows ? '待通知' : hhmm(P.floorKnows);
   $('#k-l').innerHTML = (t < P.insertAt ? 0 : changedLines(P)) + '<small>條</small>';
-  const lis = document.querySelectorAll('#feed li'); let cur = -1;
-  lis.forEach((li, k) => { const fut = t < +li.dataset.t - 1e-6; li.classList.toggle('fut', fut); if (!fut) cur = k; });
-  lis.forEach((li, k) => li.classList.toggle('cur', k === cur));
+  dayKpiCharts.update(t, m, P, S.other, S.mode === 'before' ? '導入後' : '導入前');
+  if ($('#dayLogs').matches(':popover-open')) {
+    const lis = document.querySelectorAll('#feed li'); let cur = -1;
+    lis.forEach((li, k) => { const fut = t < +li.dataset.t - 1e-6; li.classList.toggle('fut', fut); if (!fut) cur = k; });
+    lis.forEach((li, k) => li.classList.toggle('cur', k === cur));
+    if (cur !== _feedIdx && lis[cur]) { _feedIdx = cur; const fd = $('#feed'); fd.scrollTop = Math.max(0, lis[cur].offsetTop - fd.clientHeight * 0.55); }
+  }
   const rt = $('#rpt'); if (rt) rt.textContent = hhmm(t);
-  if (cur !== _feedIdx && lis[cur]) { _feedIdx = cur; const fd = $('#feed'); fd.scrollTop = Math.max(0, lis[cur].offsetTop - fd.clientHeight * 0.55); }
   const c = curEvent(S.events, t), cap = $('#h-cap');
   cap.className = 'hud hud-cap ' + (c.cls || '');
   $('#h-capt').textContent = hhmm(c.t); $('#h-capx').textContent = c.cap;
@@ -130,7 +153,7 @@ function renderLower(t) {
     if (!b || b.textContent !== want) { if (b) b.remove(); b = el('button', 'btn sm' + (S.mode === 'before' ? ' pri' : ''), want); b.type = 'button';
       b.addEventListener('click', () => setMode(S.mode === 'before' ? 'after' : 'before')); cap.appendChild(b); }
   } else if (b) b.remove();
-  $('#clock').textContent = $('#h-clock').textContent = hhmm(t);
+  $('#clock').textContent = hhmm(t);
   $('#h-slow').hidden = !(S.playing && isSlow(t));
   const bk = breakAt(t), hb = $('#h-brk');
   hb.hidden = !bk; hb.textContent = bk ? bk.name + '（示意，人員休息）' : '';
@@ -167,8 +190,12 @@ function kRow(r, box) {
 }
 const gapOf = (w, t) => ['ins', 'test', 'asm', 'pack'].reduce((a, k) => a + Math.max(0, w.B[k].need / t - w.B[k].avail), 0);
 function renderKPI() {
-  const box = $('#kpi'); box.innerHTML = '';
-  S.sc.rows.forEach(r => { if (r.k === 'penalty') box.appendChild(el('div', 'kgrp', '月效益（萬元；'+(CUR ? '單價、毛利來自個案單，'+CM.name+'損失是'+CM.tag+'資料' : '單價、毛利、九月損失來自個案單')+'，比例假設是【我猜的】）')); kRow(r, box); });
+  const highlights = $('#kpi'), box = $('#kpiMore');
+  highlights.replaceChildren();
+  box.replaceChildren();
+  const featured = ['ship', 'otd', 'gm', 'value', 'busiestStation'];
+  const renderRow = r => kRow(r, featured.includes(r.k) ? highlights : box);
+  S.sc.rows.forEach(r => { if (r.k === 'penalty') box.appendChild(el('div', 'kgrp', '月效益（萬元；'+(CUR ? '單價、毛利來自個案單，'+CM.name+'損失是'+CM.tag+'資料' : '單價、毛利、九月損失來自個案單')+'，比例假設是【我猜的】）')); renderRow(r); });
   /* 人力與人工站：不加人的限制要看得到代價。增加的人時、稼動率變高都是紅色（有害），省下的才是綠色 */
   const ev = S.sc && S.sc.ev, s = S.strength, lab = laborCalc(S.ids, s, ev), w0 = noExtra(() => workerSim([], 0, ev)), w1 = workerSim(S.ids, s, ev), wh0 = whStats([], 0, ev), wh1 = whStats(S.ids, s, ev);
   const g = el('div', 'kgrp', '人力與人工站（單位工時是【我猜的】；個案不加人、加班不增加）'); box.appendChild(g);
@@ -177,7 +204,7 @@ function renderKPI() {
       how:'新增的確認、核對、備料（單位工時是【我猜的】）減掉停機少了而省下的時間。省下的是理論上可回收，不代表可以減人。' },
     { name:'增產帶動的人工站時間', unit:'人時／月', before:0, after:S.ids.length ? lab.volume : 0, src:'calc', dec:1, lowerBetter:true,
       how:'多出貨 × 每片 130 秒（資料2 抽測）。這是增產本身要花的時間，要在正常班內做完；不加人、加班不增加，所以是風險，不是效益。' },
-    { name:'人工站最忙站稼動率', unit:'%', before:w0.bu, after:w1.bu, src:'calc', pct:true, dec:0, lowerBetter:true,
+    { k:'busiestStation', name:'人工站最忙站稼動率', unit:'%', before:w0.bu, after:w1.bu, src:'calc', pct:true, dec:0, lowerBetter:true,
       chip:{ ok:w1.bu <= WORKER.warn, t:w1.bu > WORKER.max + 1e-6 ? '排不下' : w1.bu > WORKER.warn ? '無餘裕（>' + f0(WORKER.warn * 100) + '%）' : w1.bu > WORKER.ref ? '偏緊（90～' + f0(WORKER.warn * 100) + '%）' : '有餘裕' },
       how:'需要站時 ÷ 九月日報實際生產時間（由人工效率反推；含不含加班不明）。最忙站：' + wkN(w1.worst) + '。超過 ' + f0(WORKER.warn * 100) + '% 先不加量（團隊定的門檻【我猜的】；九月組裝站、包裝站已是 90%），100% 表示不能再多一片。' },
     { name:'要把最忙站壓到 ' + f0(WORKER.warn * 100) + '% 還缺', unit:'人時／月', before:gapOf(w0, WORKER.warn), after:gapOf(w1, WORKER.warn), src:'calc', dec:1, lowerBetter:true,
@@ -192,7 +219,7 @@ function renderKPI() {
           how:'同上，但各站可用站時扣平均缺勤 ' + f0(LABOR.absentPct) + '%【我猜的】，可在「可調的假設」改）。導入後約為 ' + f0(OTB) + ' h 的 ' + pc(ot.after.abs) + '。' }]; })(),
     { name:'倉庫人時（會被策略改變的工作）', unit:'人時／月', before:wh0.tot, after:wh1.tot, src:'guess', dec:1, lowerBetter:true,
       how:'等料時找料補料、備料、到料日回報、換零件退料。倉庫人數與日常占用沒有資料，排不排得下要問倉庫主管。' }
-  ].forEach(r => kRow(r, box));
+  ].forEach(renderRow);
   { const c = el('div', 'kcap');
     c.innerHTML = '人工站緩衝【我猜的】：額外可用 <b>' + f0(LABOR.stationExtraH) + '</b> 人時／月。<button type="button" class="kbtn" data-ex="' + EXTRA_PRESET + '">套用建議情境（' + EXTRA_PRESET + ' 人時：產線省下人時一半約 85＋加班改派約 125）</button> <button type="button" class="kbtn" data-ex="0">清除</button>';
     c.querySelectorAll('[data-ex]').forEach(b => b.onclick = () => { LABOR.stationExtraH = +b.dataset.ex; syncLabParams(); S.sc = scenario(S.ids, S.strength); renderMonthly(); });
@@ -201,6 +228,47 @@ function renderKPI() {
     const at = st => { const sc = scenario(S.ids, st, ev), x = k => sc.rows.find(r => r.k === k).after; return f1(x('ship')) + ' 千片、' + (x('otd') * 100).toFixed(1) + '%'; };
     box.appendChild(el('div', 'kcap', '這些是效果強度 ' + s.toFixed(2) + ' 的模擬輸出（1.00＝我們假設的完整效果，不是實測）。同一組合效果只打到 0.82：' + at(0.82) + '；打到 0.65：' + at(0.65) + '；打到 0.50：' + at(0.5) + '。'));
   }
+}
+function toggleFeature(feature) {
+  if (feature.id === 'fair' && !BOSS.ok) { openFair(); return; }
+  const on = S.ids.includes(feature.id);
+  setIds(on ? S.ids.filter(id => id !== feature.id) : S.ids.concat(feature.id));
+}
+function syncFeatureSwitch(button, feature, on) {
+  button.setAttribute('aria-checked', String(on));
+  button.setAttribute('aria-label', (on ? '取消導入 ' : '導入 ') + feature.name);
+}
+function renderQuickFeatures() {
+  const panel = $('#featurePicker'), box = $('#quickFeatures');
+  if (!box.childElementCount) {
+    featView().forEach(feature => {
+      const available = HAS_DEMO(feature);
+      const row = el('div', 'quick-feature');
+      row.dataset.id = feature.id;
+      const demo = el('button', '', '<svg class="ft-i" viewBox="0 0 24 24" aria-hidden="true"><path d="' + feature.icon + '"/></svg><span>' + feature.name + '</span>');
+      demo.type = 'button';
+      demo.disabled = !available;
+      demo.onclick = () => { panel.close(); openDemo(feature); };
+      row.appendChild(demo);
+      if (available) {
+        const toggle = el('button', 'ft-sw', '<i></i>');
+        toggle.type = 'button';
+        toggle.setAttribute('role', 'switch');
+        toggle.onclick = () => {
+          if (feature.id === 'fair' && !BOSS.ok) panel.close();
+          toggleFeature(feature);
+        };
+        row.appendChild(toggle);
+      } else {
+        row.appendChild(el('small', '', '尚無 Demo'));
+      }
+      box.appendChild(row);
+    });
+  }
+  FEATURES.forEach(feature => {
+    const toggle = box.querySelector('[data-id="' + feature.id + '"] .ft-sw');
+    if (toggle) syncFeatureSwitch(toggle, feature, S.ids.includes(feature.id));
+  });
 }
 function renderFeats() {
   /* 功能方塊（Badlion 式）：點方塊開 Demo；點下方開關才是導入／取消。有 Demo 的方塊上色，沒有的白色。
@@ -219,7 +287,7 @@ function renderFeats() {
         + '<button type="button" class="ft-sw" role="switch"><i></i></button>'
         + '<span class="ft-st"></span>'
         + '<span class="fh" id="fh-' + f.id + '" role="tooltip"><div>' + f.desc + '</div><div class="note">' + f.effect + '</div><div class="note">價值等級 T' + FEAT_LV[f.id] + '：' + FEAT_WHY[f.id] + '</div>' + (f.warn ? '<div class="note fwarn" data-w>⚠ ' + f.warn + '</div>' : '') + '<div class="note flab" data-lab></div></span>';
-      t.querySelector('.ft-sw').onclick = e => { e.stopPropagation(); if (f.id === 'fair' && !BOSS.ok) { openFair(); return; } const on = S.ids.indexOf(f.id) >= 0; setIds(on ? S.ids.filter(x => x !== f.id) : S.ids.concat([f.id])); };
+      t.querySelector('.ft-sw').onclick = e => { e.stopPropagation(); toggleFeature(f); };
       t.onclick = () => openDemo(f);
       t.onkeydown = e => { if (e.target === t && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); openDemo(f); } };
       box.appendChild(t);
@@ -228,7 +296,7 @@ function renderFeats() {
   FEATURES.forEach(f => {
     const t = box.querySelector('[data-id="' + f.id + '"]'), on = S.ids.indexOf(f.id) >= 0, has = !!(f.demo || f.page), sw = t.querySelector('.ft-sw');
     t.classList.toggle('on', on);
-    sw.setAttribute('aria-checked', on ? 'true' : 'false'); sw.setAttribute('aria-label', (on ? '取消導入 ' : '導入 ') + f.name);
+    syncFeatureSwitch(sw, f, on);
     t.querySelector('.ft-st').textContent = (on ? '已導入' : (f.id === 'fair' && !BOSS.ok ? bossLabel() : '未導入')) + (has ? '' : '・尚無 Demo，不能導入');
     const lb = t.querySelector('[data-lab]');
     if (lb) { const r = laborRowFor(f.id).row; lb.textContent = r ? '人力時間（' + (on ? '目前組合' : '若導入') + '）：增加 +' + f1(r.inc) + '、減少 −' + f1(r.dec) + '、淨 ' + hh(r.net) + ' 人時／月【我猜的】' : ''; }
@@ -238,6 +306,7 @@ function renderFeats() {
       if (w) { w.textContent = BOSS.ok ? '✓ 老闆已確認（' + BOSS.via + '）' : '⚠ ' + bossLabel() + '：確認前不能導入'; w.style.color = BOSS.ok ? '#7be0a6' : ''; }
     }
   });
+  if ($('#featurePicker').open) renderQuickFeatures();
   smoothHTML($('#fcount'), S.ids.length ? '已導入 ' + S.ids.length + ' 項' : '目前全部未導入（＝' + CM.name + '現況）');
 }
 function renderDock() {
@@ -284,13 +353,13 @@ function openDept() {
   OVL_CUR = 2; $('#ovlT').textContent = '部門交互插單 — 系統模擬 Demo（v2）'; $('#ovlS').textContent = '老闆 LINE → 業務 → 生管 → 回覆；關閉後回到罰款加權排序';
   $('#ovlLink').hidden = true; $('#ovlF').src = demoURL2(); $('#ovl').classList.add('on');
 }
-function openDemo(f) {
+function openDemo(f, previewHtml) {
   if (f.id === 'fair') { openFair(); return; }
   if (f.kitdemo) { openKit(); return; }
   if (f.page) { showPage(f.page); markDockClose(); return; }
   if (!f.demo) { toast(f.name + '：這一項還沒有系統 Demo。'); return; }
   $('#ovlT').textContent = f.name + ' — 系統模擬 Demo'; $('#ovlS').textContent = '四個端：老闆、業務、生管、後台';
-  OVL_CUR = 1; $('#ovlLink').hidden = false; $('#ovlF').src = demoURL(); $('#ovl').classList.add('on');
+  OVL_CUR = 1; $('#ovlLink').hidden = false; if (previewHtml) $('#ovlF').srcdoc = previewHtml; else $('#ovlF').src = demoURL(); $('#ovl').classList.add('on');
   /* 線上預覽的沙盒可能擋住內嵌視窗：同時提供線上版連結 */
 }
 function renderChips() {
@@ -357,7 +426,7 @@ function renderNotes() {
   const r = k => S.sc.rows.find(x => x.k === k), ship = r('ship'), otd = r('otd');
   smoothHTML($('#banner'), S.ids.length
     ? '月度效益（' + afterLabel() + '，效果強度 ' + S.strength.toFixed(2) + '）：月出貨 ' + fmtRow(ship, ship.before) + ' → <b>' + fmtRow(ship, ship.after) + '</b> 千片，準時率 ' + fmtRow(otd, otd.before) + ' → <b>' + fmtRow(otd, otd.after) + '</b>。這是<b>模擬值</b>，不是實測；狀態為「進入試點驗證」。'
-    : '月度現況：' + (CUR ? CM.ym + (CM.ai ? '【AI模擬】' : '（匯入）') + '出貨 ' + f1(SEP.s[2]) + ' 千片、準時率 ' + f0(SEP.s[3] * 100) + '%、加班 ' + f0(SEP.s[4]) + ' h、客訴 ' + SEP.s[6] + ' 件。' : '九月出貨 114 千片、準時率 78%、加班已到上限 3,700 h、客訴 14 件。') + '在下面勾選要導入的功能，月度數字和上方「導入後」的重播會一起改變。');
+    : '');
 }
 /* 會因換行改變大小的區塊：大小變化用 0.3 秒補間 */
 smoothResize($('#banner'), 'h'); smoothResize(document.querySelector('.bar'), 'wh');
@@ -370,12 +439,21 @@ function onFeatures() {
 
 /* ---------------- 事件 ---------------- */
 $('#play').addEventListener('click', () => { if (S.playing) S.playing = false; else { if (S.t >= DAY.H1) S.t = DAY.H0; S.playing = true; } playBtn(); });
+$('#dayLogs').addEventListener('toggle', e => { if (e.newState === 'open') { _feedIdx = -1; render(0); } });
 $('#feed').addEventListener('click', e => { const li = e.target.closest('li'); if (!li) return; S.t = +li.dataset.t + 0.001; S.playing = false; playBtn(); render(0); });
 $('#restart').addEventListener('click', () => { S.t = DAY.H0; S.playing = true; playBtn(); });
-$('#speed').addEventListener('change', e => { S.speed = +e.target.value; });
+$('#speed').addEventListener('change', e => {
+  S.speed = +e.target.value;
+  const replaySpeed = $('#rpSpeed'); if (replaySpeed) replaySpeed.value = e.target.value;
+});
 document.querySelectorAll('.mode button').forEach(b => b.addEventListener('click', () => setMode(b.dataset.m)));
-document.querySelectorAll('.views button').forEach(b => b.addEventListener('click', () => { const v = b.dataset.v; S.view = v;
-  if (v === 'auto') { S.auto = true; F3.goal = null; } else { S.auto = false; F3.goal = F3.ok ? shot(v) : null; } markView(v); }));
+$('#factoryView').addEventListener('change', event => {
+  S.view = event.target.value;
+  S.auto = S.view === 'auto';
+  const free = S.view === 'free';
+  allowFactoryInteraction(F3.ctl, free);
+  F3.goal = !S.auto && !free && F3.ok ? shot(S.view) : null;
+});
 /* 功能區的兩顆預設配置：在可導入的功能組合與強度 0.50～1.00 之間搜尋（只改導入的功能、強度；建議配置另設人工站額外時數）
    建議最佳配置：最忙站 ≤ 警戒線、準時 ≥ 90% 下，出貨最多（相對安全，不一定達 +10%）
    達標配置：出貨 ≥ 目標、準時 ≥ 90% 下，最忙站最低（能過標準時的最安全組合） */
@@ -430,7 +508,9 @@ function applyPreset(mode) {
 $('#str').addEventListener('input', e => { S.strength = +e.target.value / 100; $('#strv').textContent = S.strength.toFixed(2); onFeatures(); });
 $('#tblbtn').addEventListener('click', () => { const c = $('#tblcard'); c.hidden = !c.hidden; $('#tblbtn').classList.toggle('pri', !c.hidden); if (!c.hidden) c.scrollIntoView({ behavior:'smooth', block:'start' }); });
 $('#theme').addEventListener('click', () => { const dark = document.documentElement.dataset.theme === 'dark';
-  document.documentElement.dataset.theme = dark ? 'light' : 'dark'; $('#theme').textContent = dark ? '深色' : '淺色'; renderCharts(); applyTheme3D(); });
+  document.documentElement.dataset.theme = dark ? 'light' : 'dark';
+  $('#theme').setAttribute('aria-pressed', String(!dark)); $('#theme').title = dark ? '切換深色主題' : '切換淺色主題';
+  renderCharts(); applyTheme3D(); });
 $('#ovlX').addEventListener('click', () => { $('#ovl').classList.remove('on'); $('#ovlF').src = 'about:blank'; });
 $('#ovlNew').addEventListener('click', () => { try { window.open(OVL_CUR === 2 ? demoURL2() : demoURL(), '_blank'); } catch (e) { toast('瀏覽器擋住了新視窗，請用這個視窗看。'); } });
 $('#ovl').addEventListener('click', e => { if (e.target === $('#ovl')) $('#ovlX').click(); });

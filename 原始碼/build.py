@@ -2,7 +2,7 @@ import base64, io, os, sys
 here = os.path.dirname(os.path.abspath(__file__))
 P = lambda f: io.open(os.path.join(here, 'parts', f), encoding='utf-8').read()
 shell = P('00_shell.html').replace('<!--SCHED-->', P('12_sched.html'))
-parts = ['00_helpers.js','01_data.js','02_day.js','03_flow2d.js','04_factory3d.js','05_charts.js','06_app.js','07_machine.js','08_month.js','10_engine.js','11_calc.js','12_sched.js','13_fair.js','14_labor.js','15_kitdemo.js','16_roster.js','17_month.js','09_nav.js']
+parts = ['00_helpers.js','01_data.js','02_day.js','03_flow2d.js','04_factory3d.js','05_charts.js','05a_day_kpi.js','06_app.js','07_machine.js','08_month.js','10_engine.js','11_calc.js','12_sched.js','13_fair.js','14_labor.js','15_kitdemo.js','16_roster.js','17_month.js','09_nav.js']
 js = '\n'.join('/* ===== %s ===== */\n%s' % (f, P(f)) for f in parts)
 vendor_dir = os.path.join(here, 'node_modules', 'three')
 three = io.open(os.path.join(vendor_dir, 'build', 'three.min.js'), encoding='utf-8').read()
@@ -15,6 +15,11 @@ if os.path.exists(xl_path):
     print('xlsx reader embedded')
 else:
     print('WARNING: xlsx reader missing (月份匯入不能用)')
+chart_dir = os.path.join(here, 'vendor_chartjs')
+with io.open(os.path.join(chart_dir, 'LICENSE.md'), encoding='utf-8') as chart_license:
+    vendor += '\n/*\n' + chart_license.read().rstrip() + '\n*/\n'
+with io.open(os.path.join(chart_dir, 'chart.umd.min.js'), encoding='utf-8') as chart_js:
+    vendor += '\n'.join(line for line in chart_js.read().splitlines() if not line.startswith('//# sourceMappingURL=')) + '\n'
 demo = os.environ.get('DEMO_HTML', '')
 b64 = base64.b64encode(io.open(demo,'rb').read()).decode('ascii') if demo and os.path.exists(demo) else ''
 print('demo embedded' if b64 else 'WARNING: demo not embedded')

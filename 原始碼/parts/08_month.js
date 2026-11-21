@@ -14,7 +14,7 @@ const DOFF = CUR ? 1000 : 0;
 function mdayOf(n) { return n >= 1000 ? MDAYS.find(x => x.d === n - 1000) : MDAYS_SEP.find(x => x.d === n); }
 function dLabel(n) { return n >= 1000 ? CM.m + '/' + (n - 1000) : '9/' + n; }
 function dateOf(n) { return n >= 1000 ? CM.ym.replace('/', '-') + '-' + String(n - 1000).padStart(2, '0') : '2026-09-' + String(n).padStart(2, '0'); }
-const MM = { i:0, playing:false, speed:1, acc:0, plan:null, lastTs:0 };
+const MM = { i:0, playing:false, speed:2, acc:0, plan:null, lastTs:0 };
 const MM_DOW = { '一':'週一','二':'週二','三':'週三','四':'週四','五':'週五','六':'週六' };
 const mmSum = (arr, k, to) => { let s = 0; for (let i = 0; i <= to; i++) s += arr[i][k]; return s; };
 
@@ -71,7 +71,7 @@ function mmCum(cv) {
 }
 function mmStops(cv) {
   const { ctx, w:W, h:H } = fitCanvas(cv), C = MM_COL(), P = MM.plan, n = MDAYS.length;
-  const L = 36, R = 8, T = 16, Bt = 28, pw = W - L - R, ph = H - T - Bt, YM = 22, gw = pw / n, bw = Math.max(4, Math.min(14, gw / 2 - 2));
+  const L = 36, R = 8, T = 16, Bt = 28, pw = W - L - R, ph = H - T - Bt, YM = 22, gw = pw / n, bw = Math.max(1, Math.min(14, gw / 2 - 2));
   const Y = v => T + ph * (1 - v / YM);
   ctx.clearRect(0, 0, W, H); ctx.font = '12px "Noto Sans TC",sans-serif'; ctx.textBaseline = 'middle';
   ctx.fillStyle = C.now; ctx.fillRect(L + gw * MM.i, T, gw, ph);
@@ -108,17 +108,16 @@ function mmNote17(n) {
 }
 function mmDay() {
   const i = MM.i, d = MDAYS[i], P = MM.plan, b = P.B[i], a = P.A[i];
-  let h = '<h3 style="margin:0 0 2px">' + CM.m + '/' + d.d + '（' + (MM_DOW[d.w] || d.w) + '）</h3>';
-  h += '<p class="note" style="margin:0 0 8px">課長備註：' + (d.note ? d.note : '（當天沒有寫）') + '</p>';
-  if (d.rush) { const r = d.rush; h += '<div class="mdcard" style="margin-bottom:8px"><h4>當天的插單：' + r.cust + '　' + r.what + '</h4><ul>'
+  let h = '<p class="note mm-data-period">' + (d.note ? '課長備註：' + d.note : '當日數據') + '</p>';
+  if (d.rush) { const r = d.rush; h += '<div class="mdcard" hidden><h4>當天的插單：' + r.cust + '　' + r.what + '</h4><ul>'
       + '<li>導入前：' + r.how + '通知（' + r.notice + '），現場知道是 ' + r.known + (r.result ? '；後來：' + r.result : '') + '</li>'
       + '<li>導入後：老闆轉入口、業務確認、試算後才回覆；通知到業務約 15 分鐘（示意，【我猜的】）；有試算的交期日</li>'
       + '<li class="note">逐單遲交與否模型沒有預測，只有月準時率（見下方月度指標）</li>' 
       + mmNote17(DOFF + d.d) + '<button type="button" class="btn sm pri" id="mmTo17" data-d="' + (DOFF + d.d) + '" style="margin-top:8px">看 ' + CM.m + '/' + d.d + ' 的分鐘級重播</button>' + '</div>'; }
-  h += '<div style="overflow:auto"><table class="mdtbl"><thead><tr><th>這一天</th><th>導入前（' + CM.tag + '）</th><th>導入後（推算）</th><th>差異</th></tr></thead><tbody>'
+  h += '<table class="mdtbl"><thead><tr><th>指標</th><th>導入前</th><th>導入後</th><th>差異</th></tr></thead><tbody>'
     + mmRow('出貨（片）', b.ship, a.ship, 0, false) + mmRow('SMT 開機（h）', d.open, d.open, 1, false) + mmRow('正常運轉（h）', b.run, a.run, 1, false)
     + mmRow('換線停機（h）', b.coH, a.coH, 1, true) + mmRow('等料停機（h）', b.mwH, a.mwH, 1, true) + mmRow('拋料與故障（h）', b.flH, a.flH, 1, true)
-    + mmRow('換線次數', b.co, a.co, 1, true) + mmRow('重測（片）', b.ret, a.ret, 0, true) + '</tbody></table></div>';
+    + mmRow('換線次數', b.co, a.co, 1, true) + mmRow('重測（片）', b.ret, a.ret, 0, true) + '</tbody></table>';
   return h;
 }
 function mmDraw() {
@@ -127,10 +126,10 @@ function mmDraw() {
   mmCum($('#mmC1')); mmStops($('#mmC2'));
   const cs = (arr, k) => mmSum(arr, k, i);
   const ob = cs(P.B, 'run') / cs(MDAYS, 'open'), oa = cs(P.A, 'run') / cs(MDAYS, 'open');
-  $('#mmCum').innerHTML = '<div style="overflow:auto"><table class="mdtbl"><thead><tr><th>累計到 ' + CM.m + '/' + MDAYS[i].d + '（第 ' + (i + 1) + '／' + n + ' 個工作日）</th><th>導入前</th><th>導入後</th><th>差異</th></tr></thead><tbody>'
+  $('#mmCum').innerHTML = '<p class="note mm-data-period">累計至 ' + CM.m + '/' + MDAYS[i].d + '（第 ' + (i + 1) + '／' + n + ' 個工作日）</p><table class="mdtbl"><thead><tr><th>指標</th><th>導入前</th><th>導入後</th><th>差異</th></tr></thead><tbody>'
     + mmRow('出貨（片）', cs(P.B, 'ship'), cs(P.A, 'ship'), 0, false) + mmRow('SMT 稼動率（%）', ob * 100, oa * 100, 1, false)
     + mmRow('換線次數', cs(P.B, 'co'), cs(P.A, 'co'), 0, true) + mmRow('換線停機（h）', cs(P.B, 'coH'), cs(P.A, 'coH'), 1, true)
-    + mmRow('等料停機（h）', cs(P.B, 'mwH'), cs(P.A, 'mwH'), 1, true) + mmRow('拋料與故障（h）', cs(P.B, 'flH'), cs(P.A, 'flH'), 1, true) + '</tbody></table></div>';
+    + mmRow('等料停機（h）', cs(P.B, 'mwH'), cs(P.A, 'mwH'), 1, true) + mmRow('拋料與故障（h）', cs(P.B, 'flH'), cs(P.A, 'flH'), 1, true) + '</tbody></table>';
   $('#mmDay').innerHTML = mmDay();
   const b17 = $('#mmTo17'); if (b17) b17.onclick = () => { switchDay(+b17.dataset.d); setScope('day'); };
   const sc = $('#mmScrub'); if (sc && document.activeElement !== sc) sc.value = i;
@@ -143,16 +142,17 @@ function mmDraw() {
 }
 function mmStep(dt) {
   if (!MM.playing) return;
+  const dayIndex = MM.i;
   MM.acc += dt * MM.speed * 1.4;
   while (MM.acc >= 1) { MM.acc -= 1; if (MM.i < MDAYS.length - 1) MM.i++; else { MM.playing = false; break; } }
-  mmDraw();
+  if (MM.i !== dayIndex || !MM.playing) mmDraw();
 }
 
 /* ---------- 範圍切換：單日 / 單月 ---------- */
 function setScope(s) {
   S.scope = s; document.body.dataset.scope = s; PAGE = s; navSync();
   document.querySelectorAll('.scope button').forEach(b => b.classList.toggle('on', b.dataset.s === s));
-  if (s === 'month') { S.playing = false; playBtn(); mmBuild(); MM.i = Math.min(MM.i, MDAYS.length - 1); MM.playing = !REDUCED && MM.i === 0; MM.acc = 0; mmDraw(); }
+  if (s === 'month') { S.playing = false; playBtn(); mmBuild(); MM.i = Math.min(MM.i, MDAYS.length - 1); if (MM.i >= MDAYS.length - 1) MM.i = 0; MM.playing = !REDUCED; MM.acc = 0; mmDraw(); }
   else { MM.playing = false; if (F3.ok) resize3D(); render(0); }
 }
 function mmBind() {
@@ -160,6 +160,16 @@ function mmBind() {
   $('#mmPlay').addEventListener('click', () => { if (MM.playing) MM.playing = false; else { if (MM.i >= MDAYS.length - 1) MM.i = 0; MM.playing = true; } mmDraw(); });
   $('#mmRestart').addEventListener('click', () => { MM.i = 0; MM.acc = 0; MM.playing = true; mmDraw(); });
   $('#mmSpeed').addEventListener('change', e => { MM.speed = +e.target.value; });
+  $('#mmDataSwitch').addEventListener('click', e => {
+    const selected = e.target.closest('button[data-mm-data]');
+    if (!selected) return;
+    e.currentTarget.querySelectorAll('button[data-mm-data]').forEach(button => {
+      const active = button === selected;
+      button.classList.toggle('on', active);
+      button.setAttribute('aria-pressed', String(active));
+      document.getElementById(button.dataset.mmData).hidden = !active;
+    });
+  });
   $('#mmScrub').addEventListener('input', e => { MM.i = +e.target.value; MM.playing = false; mmDraw(); });
   [['#mmC1', 'hit1'], ['#mmC2', 'hit2']].forEach(([sel, key]) => {
     const cv = $(sel), pick = e => { const h = MM[key]; if (!h) return; MM.i = mmIdx(cv, e, h.L, h.R, h.n); if (key === 'hit2') { const r = cv.getBoundingClientRect(), gw = (r.width - h.L - h.R) / h.n; MM.i = Math.max(0, Math.min(h.n - 1, Math.floor((e.clientX - r.left - h.L) / gw))); } MM.playing = false; mmDraw(); };
@@ -172,13 +182,23 @@ function mmBind() {
 function applyDayLabels() {
   $('#scopeDay .tl').textContent = '單日重播：' + DAY.LABEL;
   $('#m-before').textContent = '導入前：' + DAY.LABEL + ' 實際';
-  const sel = $('#daysel'); if (sel) sel.value = DAY.DATE;
+  $('#daysel').value = DAY.DATE;
+  $('#daySelectLabel').textContent = DAY.LABEL;
 }
 function switchDay(n) {
   if (n === DAY.DATE && S.plan) return;
   if (!setDayProfile(n)) return;
-  applyDayLabels(); rebuildDay(false); S.playing = !REDUCED; playBtn(); render(0);
-  if (S.scope === 'month') { MM.i = Math.max(0, MDAYS.findIndex(x => x.d === n - DOFF)); mmDraw(); }
+  const page = document.body.dataset.page;
+  applyDayLabels(); rebuildDay(false); S.playing = page === 'day' && !REDUCED; playBtn(); render(0);
+  if (page === 'month') {
+    const dayIndex = MDAYS.findIndex(day => day.d === n - DOFF);
+    if (dayIndex >= 0) {
+      MM.i = dayIndex;
+      MM.playing = false;
+      MM.acc = 0;
+      mmDraw();
+    }
+  }
 }
 function daySelInit() {
   const sel = $('#daysel');
@@ -186,7 +206,7 @@ function daySelInit() {
   sel.innerHTML = CUR
     ? opt(17, '9/17', MDAYS_SEP.find(x => x.d === 17)).replace('</option>', '（個案資料）</option>') + MDAYS.filter(x => x.rush).map(x => opt(DOFF + x.d, CM.m + '/' + x.d, x)).join('')
     : MDAYS.filter(x => x.rush).map(x => opt(x.d, '9/' + x.d, x)).join('');
-  sel.value = DAY.DATE;
+  applyDayLabels();
   sel.addEventListener('change', () => switchDay(+sel.value));
 }
 daySelInit();

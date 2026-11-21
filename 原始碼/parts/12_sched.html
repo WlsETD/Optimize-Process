@@ -1,14 +1,14 @@
   <section class="pg-sched rs" aria-label="排程試算：用實際換線時間">
     <div class="rshead">
       <div class="seg" id="rs_sub" role="group" aria-label="排程試算畫面">
-        <button type="button" data-v="calc" class="on">試算比較</button><button type="button" data-v="auto">每天自動調整</button><button type="button" data-v="check">異常值與紀錄品質</button><button type="button" data-v="source">數字從哪來</button>
+        <button type="button" data-v="calc" class="on">試算比較</button><button type="button" data-v="auto">每天自動調整</button>
       </div>
       <span class="note">排程不再用固定 0.5 h／線／天，改用機台紀錄的實際換線時間。只讓交期更準，不增加出貨。資料：資料3 九月逐日紀錄。</span>
     </div>
 
     <!-- 試算比較 -->
-    <div class="rsv on" id="rs_v_calc" style="grid-template-columns:330px minmax(0,1fr)">
-      <div class="rsc">
+    <div class="rsv on" id="rs_v_calc">
+      <div class="rsc" hidden>
         <h3>輸入這張單</h3>
         <label>客戶</label>
         <div class="seg rsseg" id="rs_cust"><button type="button" data-c="乙" class="on">乙 2%／天</button><button type="button" data-c="丙">丙 1%／天</button><button type="button" data-c="甲">甲 無罰則</button></div>
@@ -42,14 +42,13 @@
             <dl><dt>每天換線</dt><dd class="num" id="rs_newCo"></dd><dt>計算</dt><dd class="num" id="rs_newN"></dd><dt>每天產出</dt><dd class="num" id="rs_newOut"></dd><dt>預估完成</dt><dd class="num" id="rs_newFin"></dd></dl>
           </div>
         </div>
-        <div id="rs_result" class="rsres"></div>
         <div class="rsc rschart"><h3>預估完成日 vs 要求交期（工作日）</h3><div class="cv"><svg id="rs_chC" role="img" aria-label="預估完成日與要求交期比較"></svg></div></div>
       </div>
     </div>
 
     <!-- 每天自動調整 -->
-    <div class="rsv" id="rs_v_auto" style="grid-template-columns:310px minmax(0,1fr)">
-      <div class="rsc">
+    <div class="rsv" id="rs_v_auto">
+      <div class="rsc" hidden>
         <h3>回測設定（九月 26 天真實紀錄）</h3>
         <p class="note">每天用「到前一天為止」的紀錄預估當天換線時間，再和當天實際比。前 7 天是暖機，不計誤差。</p>
         <label>平均的算法</label>

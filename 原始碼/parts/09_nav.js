@@ -1,8 +1,9 @@
 /* =====================================================================
    導覽列：六個頁面各自一屏，不用捲動；單日重播再分 3D / 2D / 時間軸三個畫面
    ===================================================================== */
-const PAGES = ['day', 'month', 'impact', 'history', 'notes', 'sched', 'roster'];
+const PAGES = ['day', 'month', 'impact', 'history', 'sched', 'roster', 'notes'];
 let PAGE = 'day';
+const dayLogPanel = $('#dayLogs');
 function navSync() {
   document.body.dataset.page = PAGE;
   document.querySelectorAll('#nav .tabs button').forEach(b => { const on = b.dataset.p === PAGE; b.classList.toggle('on', on); b.setAttribute('aria-selected', on ? 'true' : 'false'); });
@@ -12,35 +13,54 @@ function navSync() {
 /* 單日重播：展開按鈕放在播放列右邊（列置中），和列同高 */
 function alignDock() { const b = document.querySelector('.bar'); if (!b) return; if (b.offsetWidth) document.documentElement.style.setProperty('--bh', b.offsetHeight + 'px'); if (b.offsetWidth) { const l = Math.round(b.getBoundingClientRect().right + 12); document.documentElement.style.setProperty('--dock-l', l + 'px'); const hint = document.querySelector('.dock .hint'); if (hint) hint.style.display = innerWidth - l < hint.scrollWidth + 24 ? 'none' : ''; } }
 function navH() { alignDock(); const n = $('#nav'), b = document.querySelector('.bar'); if (n) document.documentElement.style.setProperty('--nh', (window.matchMedia('(min-width:900px)').matches ? 0 : n.offsetHeight) + 'px'); if (b && b.offsetHeight) document.documentElement.style.setProperty('--bh', b.offsetHeight + 'px'); if (F3.ok && PAGE === 'day') resize3D(); }
-function showPage(p) {
+function startPreviewPlayback(view) {
+  if (REDUCED || (view !== '3d' && view !== '2d')) return;
+  if (S.t >= DAY.H1) S.t = DAY.H0;
+  S.playing = true;
+  playBtn();
+}
+function showPage(p, autoplay = true) {
   if (PAGES.indexOf(p) < 0) return;
+  if (p !== 'day') dayLogPanel.hidePopover();
   window.scrollTo(0, 0);
-  if (p === 'day' || p === 'month') { setScope(p); return; }
+  if (p === 'day' || p === 'month') {
+    if (p === 'day' && PAGE !== 'day' && autoplay) startPreviewPlayback(document.body.dataset.dv);
+    setScope(p);
+    return;
+  }
   PAGE = p; S.playing = false; MM.playing = false; playBtn(); navSync();
   requestAnimationFrame(() => { if (p === 'history' || p === 'impact') renderCharts(); if (p === 'sched') RS.render(); if (p === 'roster') rosterRender(); });
 }
 function showDV(v) {
+  const previous = document.body.dataset.dv;
+  if (v !== previous && (v === '2d' || v === '3d')) {
+    const speed = $('#speed');
+    speed.value = v === '2d' ? '4' : '2';
+    speed.dispatchEvent(new Event('change'));
+  }
   document.body.dataset.dv = v;
+  startPreviewPlayback(v);
   document.querySelectorAll('.dvseg button').forEach(b => b.classList.toggle('on', b.dataset.dv === v));
-  /* 2D 時畫面比較寬：把時間軸挪到 2D 圖下面，右邊整欄留給事件列表 */
-  const tl = $('#tl');    /* 基礎數據（#kpis）是獨立的第四個畫面，不放在 3D／2D／計算過程裡 */
-  if (v === '2d') $('#f2').closest('section').appendChild(tl);
-  else document.querySelector('.dayr').prepend(tl);
+  const tl = $('#tl');
+  if (v === '3d') $('#f3').closest('.preview-frame').after(tl);
+  else if (v === '2d') $('#f2').closest('section').appendChild(tl);
+  else $('.dayr').prepend(tl);
   if (v === '3d' && F3.ok) resize3D();
   if (v === 'calc') renderCalc();
+  _feedIdx = -1;
   render(0);
-  const fd = $('#feed'); if (typeof _feedIdx !== 'undefined') { _feedIdx = -1; render(0); }
 }
-/* 播放列在每一頁都會出現；在其他頁按播放列上的控制，就回到單日重播再執行 */
-{ const bar = document.querySelector('.bar'), toDay = e => { if (PAGE !== 'day' && !e.target.closest('#gofeat')) showPage('day'); };
-  bar.addEventListener('click', e => { if (e.target.closest('button')) toDay(e); }, true);
-  bar.addEventListener('change', toDay, true); }
 document.querySelectorAll('#nav .tabs button').forEach(b => b.addEventListener('click', () => showPage(b.dataset.p)));
+$('#notesInfo').addEventListener('click', () => showPage('notes'));
 document.querySelectorAll('.dvseg button').forEach(b => b.addEventListener('click', () => showDV(b.dataset.dv)));
-$('#gofeat').addEventListener('click', () => showPage('impact'));
+$('#gofeat').addEventListener('click', () => {
+  renderQuickFeatures();
+  $('#featurePicker').showModal();
+});
 document.addEventListener('keydown', e => {
   if (e.ctrlKey || e.metaKey || e.altKey || /^(INPUT|SELECT|TEXTAREA)$/.test((e.target || {}).tagName || '')) return;
-  if (MD.open) return;
+  if (MD.open || $('#featurePicker').open) return;
+  if (e.key === 'Escape' && dayLogPanel.matches(':popover-open')) { e.preventDefault(); dayLogPanel.hidePopover(); return; }
   if (PAGE === 'day' && /^(BUTTON)$/.test((e.target || {}).tagName || '') && e.key === ' ') return;
   if (PAGE === 'day' && e.key === ' ') { e.preventDefault(); $('#play').click(); return; }
   if (PAGE === 'day' && (e.key === ',' || e.key === '.') && window.stepEvent) { window.stepEvent(e.key === ',' ? -1 : 1); return; }
@@ -50,6 +70,7 @@ document.addEventListener('keydown', e => {
 });
 window.addEventListener('resize', navH);
 if (window.ResizeObserver) new ResizeObserver(() => { if (PAGE === 'day' && F3.ok) resize3D(); }).observe($('#dayg'));
+if (window.ResizeObserver) new ResizeObserver(() => { if (PAGE === 'history') renderCharts(); }).observe($('.pg-history'));
 /* 標籤說明：點「標籤」開 modal；關閉鈕、點背景、Esc 都能關，關閉後焦點回到按鈕 */
 {
   const ov = $('#tagOvl'), bt = $('#tagBtn'), cl = () => { ov.classList.remove('on'); bt.focus(); };
@@ -133,7 +154,6 @@ document.body.dataset.dv = '3d';
     else if (b.dataset.fm) { const o = origMode(b.dataset.fm); if (o) o.click(); }
     else if (b.id === 'fsPlay') $('#play').click();
     else if (b.id === 'fsRestart') $('#restart').click();
-    else if (b.id === 'fsSide') { G.classList.toggle('fs-noside'); refit(); }
     else if (b.id === 'fsExit') leave();
     sync();
   });

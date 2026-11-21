@@ -181,12 +181,14 @@ function init3D() {
   loadFactoryKit(scene, STATIC);
   let ctl = null;
   if (THREE.OrbitControls) {
-    ctl = new THREE.OrbitControls(cam, renderer.domElement); ctl.enableDamping = true; ctl.maxPolarAngle = 1.45; ctl.minDistance = 5; ctl.maxDistance = 140;
-    ctl.addEventListener('start', () => { if (S.auto) { S.auto = false; markView('free'); } F3.goal = null; });
+    ctl = new THREE.OrbitControls(cam, renderer.domElement); ctl.maxPolarAngle = 1.45; ctl.minDistance = 5; ctl.maxDistance = 140;
+    allowFactoryInteraction(ctl, S.view === 'free');
   }
   Object.assign(F3, { ok:true, renderer, scene, cam, ctl, mat, host, fl });
   const g = shot('overview'); cam.position.set(...g.p); if (ctl) { ctl.target.set(...g.t); ctl.update(); } else cam.lookAt(...g.t);
-  resize3D(); window.addEventListener('resize', resize3D); applyTheme3D();
+  resize3D();
+  if (window.ResizeObserver) new ResizeObserver(resize3D).observe(host);
+  window.addEventListener('resize', resize3D); applyTheme3D();
 }
 /* Blender 廠房細節（factory_kit.glb）：載入成功後隱藏靜態方塊，換成模型；失敗就維持方塊 */
 function loadFactoryKit(scene, statics) {
@@ -213,19 +215,23 @@ function shot(name) {
     line3:   { t:[8,1,8.8],  o:[-11,10,15] },
     down:    { t:[33,0.8,6.6],o:[-4,12,16] }
   };
-  const s = SH[name] || SH.overview, a = F3.cam ? F3.cam.aspect : 2, k = a < 0.9 ? 1.9 : a < 1.4 ? 1.35 : 1;
+  const s = SH[name] || SH.overview, a = F3.cam ? F3.cam.aspect : 2, k = 1.14 * (a < 0.9 ? 1.9 : a < 1.4 ? 1.35 : 1);
   return { t:s.t, p:[s.t[0]+s.o[0]*k, s.t[1]+s.o[1]*k, s.t[2]+s.o[2]*k] };
+}
+function allowFactoryInteraction(control, enabled) {
+  if (!control) return;
+  control.enabled = enabled;
+  control.enableDamping = enabled;
+  control.domElement.style.touchAction = enabled ? 'none' : 'auto';
+  control.domElement.style.cursor = enabled ? 'grab' : '';
 }
 function resize3D() {
   if (!F3.ok) return;
-  const card = F3.host.closest('section'), w = F3.host.clientWidth || 900;
-  let h;
-  if (card && card.clientHeight > 0 && (window.innerWidth > 1000 || document.body.classList.contains('fsmode'))) {          // 單日重播：填滿左欄剩下的高度
-    const sib = [...card.children].filter(c => c !== F3.host).reduce((a, c) => a + c.offsetHeight, 0), cs = getComputedStyle(card);
-    h = Math.round(card.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom) - sib - (card.children.length - 1) * (parseFloat(cs.rowGap) || 10));
-  } else h = Math.round(w * (w < 600 ? 1.1 : 0.62));
-  h = Math.max(260, Math.min(document.body.classList.contains('fsmode') ? 3000 : 900, h));
-  F3.renderer.setSize(w, h); F3.cam.aspect = w / h; F3.cam.updateProjectionMatrix(); F3.host.style.height = h + 'px';
+  const {clientWidth: w, clientHeight: h} = F3.host;
+  if (!w || !h) return;
+  const canvas = F3.renderer.domElement, scale = F3.renderer.getPixelRatio();
+  if (canvas.width !== Math.floor(w * scale) || canvas.height !== Math.floor(h * scale)) F3.renderer.setSize(w, h, false);
+  if (F3.cam.aspect !== w / h) { F3.cam.aspect = w / h; F3.cam.updateProjectionMatrix(); }
 }
 function applyTheme3D() {
   if (!F3.ok) return; const bg = css('--bg'); if (bg === F3.bg) return; F3.bg = bg; F3.scene.background = new THREE.Color(bg);
@@ -239,7 +245,6 @@ const KIND_BG = { LINE:'#06a648', 口頭:'#a86400', 系統:'#0f5e8c', 卡片:'#1
 function render3D(t, dt) {
   if (!F3.ok) return; F3.T += dt; const T = F3.T, run = S.playing && t < DAY.H1, blink = Math.sin(T*8) > 0;
   const P = S.plan, E = S.events, f = P.f;
-  if (F3.host.clientWidth && Math.abs(F3.renderer.domElement.clientWidth - F3.host.clientWidth) > 2) resize3D();
   F3.ai.visible = F3.aiLab.visible = !P.isBefore && f.intake;
   F3.board.visible = F3.boardLab.visible = !P.isBefore && f.gate;
 
@@ -355,4 +360,3 @@ function render3D(t, dt) {
     if (!S.auto && F3.cam.position.distanceTo(new THREE.Vector3(...goal.p)) < 0.05) F3.goal = null; }
   if (F3.ctl) F3.ctl.update(); F3.renderer.render(F3.scene, F3.cam);
 }
-function markView(v) { document.querySelectorAll('.views button').forEach(b => b.classList.toggle('on', b.dataset.v === v)); }
