@@ -72,7 +72,7 @@ function rosterRender() {
 }
 {
   const c = $('#rsCtl');
-  if (c) c.addEventListener('change', e => { const t = e.target; if (t.name === 'rsv') RS7.view = t.value; if (t.id === 'rsLeave') RS7.leave = t.value; if (t.id === 'rsSt') RS7.st = t.value; if (t.id === 'rsAbs') RS7.abs = t.checked; if (t.name === 'rss') RS7.show = t.value; rosterRender(); });
+  if (c) c.addEventListener('change', e => { const t = e.target; if (t.id === 'rsLeave') RS7.leave = t.value; if (t.id === 'rsSt') RS7.st = t.value; if (t.id === 'rsAbs') RS7.abs = t.checked; if (t.name === 'rss') RS7.show = t.value; rosterRender(); });
 }
 
 /* 估計需補加班（h／月）：班表算出「月底還做不完」的小時，四站加總。

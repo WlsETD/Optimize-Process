@@ -6,6 +6,7 @@ let PAGE = 'day';
 const dayLogPanel = $('#dayLogs');
 function navSync() {
   document.body.dataset.page = PAGE;
+  syncComparisonButtons(PAGE === 'roster' ? RS7.view : S.mode);
   document.querySelectorAll('#nav .tabs button').forEach(b => { const on = b.dataset.p === PAGE; b.classList.toggle('on', on); b.setAttribute('aria-selected', on ? 'true' : 'false'); });
   try { if (location.hash.slice(1) !== PAGE) history.replaceState(null, '', '#' + PAGE); } catch (e) { /* 嵌入頁面可能不允許 */ }
   navH();
@@ -146,6 +147,7 @@ document.body.dataset.dv = '3d';
     if (fake) { fake = false; apply(); }
     else if (nativeEl()) { (document.exitFullscreen || document.webkitExitFullscreen).call(document); }
   }
+  G.addEventListener('tour-factory-fullscreen', e => { fake = e.detail; apply(); });
   document.addEventListener('fullscreenchange', apply); document.addEventListener('webkitfullscreenchange', apply);
   document.querySelectorAll('.fsopen').forEach(b => b.addEventListener('click', enter));
   fsb.addEventListener('click', e => {

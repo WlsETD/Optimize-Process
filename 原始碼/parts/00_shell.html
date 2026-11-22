@@ -345,6 +345,7 @@ html body .bar>*{flex-shrink:0}
 /* 日期、導入前後切換與功能捷徑在各頁都可使用。 */
 body:not([data-page="day"]) .bar>:not(:is(.day-select,.mode,#gofeat)){display:none}
 body:not([data-page="day"]) .dock{left:auto;right:16px;bottom:16px}
+body:not([data-page="day"]):not([data-page="roster"]) .bar > .mode{display:none}
 .bar .mode button{display:inline-flex;align-items:center;justify-content:center;gap:4px}
 .bar .mode svg{width:calc(17px * var(--bz));height:calc(17px * var(--bz));flex:none}
 body .wrap{padding-bottom:calc(var(--bh,56px) + 28px)}
@@ -768,6 +769,9 @@ body[data-page="month"] .dock{display:none}
 .ftile:hover,.ftile:focus-visible,.ftile:has(:focus-visible){z-index:20}
 .ftile:focus-visible{box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 45%,transparent)}
 .ftile.demo{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
+.ftile.demo.line-app{background:#087940;border-color:#087940;color:#fff}
+.ftile.demo.line-app:is(:hover,:focus-visible,:focus-within){background:#066b37;border-color:#066b37;color:#fff}
+.ftile .ft-line-app{font-size:11px;font-weight:700;letter-spacing:.03em}
 .ftile.nodemo{background:#ffffff;border-color:#d9dfe5;color:#14202b}
 .ft-lv{margin-left:auto;margin-right:6px;padding:0 7px;border-radius:99px;background:rgba(127,127,127,.28);font-size:10.5px;font-weight:800;letter-spacing:.02em}
 .lvb{display:inline-block;margin-right:6px;padding:0 6px;border-radius:99px;background:var(--accent-soft);color:var(--accent);font-size:10.5px;font-weight:800}
@@ -906,7 +910,7 @@ body[data-page="day"]:is([data-dv="2d"],[data-dv="3d"]):not(.fsmode) .wrap>.mban
     <h2 id="featurePickerTitle">導入功能</h2>
     <form method="dialog"><button type="submit" class="btn sm" aria-label="關閉功能面板" autofocus>×</button></form>
   </div>
-  <button type="button" class="btn sm" id="tourPreset">套用建議配置</button><div id="quickFeatures"></div>
+  <button type="button" class="btn sm" id="tourPreset">套用建議配置</button> <button type="button" class="btn sm" id="quickTargetPreset">套用達標配置</button> <button type="button" class="btn sm" id="quickEnableAll">全部啟用</button><div class="note" id="quickPresetStatus" role="status"></div><div id="quickFeatures"></div>
 </dialog>
 <div class="wrap">
 
@@ -1109,7 +1113,6 @@ body[data-page="day"]:is([data-dv="2d"],[data-dv="3d"]):not(.fsmode) .wrap>.mban
   <section class="card pg-roster" id="roster">
     <div class="cardhead"><h2 id="rsTtl">模擬班表：九月每天各站稼動率</h2>
       <div class="rs7ctl" id="rsCtl">
-        <div class="seg" role="radiogroup" aria-label="比較"><label><input type="radio" name="rsv" value="before"> 導入前</label><label><input type="radio" name="rsv" value="after" checked> 導入後</label></div>
         <span class="note">稼動率（%）</span>
         <label class="rs7ck" hidden><input type="checkbox" id="rsAbs"> 平均缺勤</label>
         <label hidden>請假 <select id="rsLeave"><option value="none">無</option><option value="rush">插單日少 1 人</option><option value="all">每天少 1 人</option></select></label>
@@ -1183,6 +1186,8 @@ body[data-page="day"]:is([data-dv="2d"],[data-dv="3d"]):not(.fsmode) .wrap>.mban
 #tourAsk h2{margin:0 0 8px}#tourAsk p{margin:0 0 18px}
 #tourLayer{position:fixed;inset:0;z-index:2000;overflow:hidden}
 #tourLayer[hidden]{display:none}
+#tourLayer.tour-factory #tourFocus{display:none}
+#tourLayer.tour-factory #tourCaption{left:auto;right:12px;transform:none}
 #tourFocus{position:absolute;border:2px solid white;border-radius:10px;box-shadow:0 0 0 200vmax #070e18bd;pointer-events:none;transition:all .35s ease}
 #tourCaption{position:absolute;left:50%;bottom:12px;transform:translateX(-50%);width:max-content;max-width:calc(100% - 24px);box-sizing:border-box;padding:12px 16px;background:#142433;color:white;box-shadow:0 4px 22px #0006;border-radius:10px}
 #tourLayer.tour-intake #tourCaption{left:auto;right:8px;top:8px!important;bottom:auto!important;transform:none;padding:6px 10px}
@@ -1200,7 +1205,12 @@ body[data-page="day"]:is([data-dv="2d"],[data-dv="3d"]):not(.fsmode) .wrap>.mban
   const page = p => click('#nav [data-p="'+p+'"]');
   const view = v => click('.bar [data-dv="'+v+'"]');
   const steps = [];
-  let focus, timer, index = -1, paused = false, closeDemo;
+  let focus, timer, index = -1, paused = false, closeDemo, factoryFullscreen = false;
+  function setFactoryFullscreen(on) {
+    factoryFullscreen = on;
+    layer.classList.toggle('tour-factory', on);
+    get('#dayg').dispatchEvent(new CustomEvent('tour-factory-fullscreen', { detail:on }));
+  }
   function add(title, action, selector, describe, duration = 6500) {
     steps.push({title,action,selector,describe,duration});
   }
@@ -1214,6 +1224,7 @@ body[data-page="day"]:is([data-dv="2d"],[data-dv="3d"]):not(.fsmode) .wrap>.mban
     caption.style.top = r.top > innerHeight*.55 ? '12px' : 'auto';
   }
   function cleanup() {
+    if (factoryFullscreen) { S.playing = false; playBtn(); setFactoryFullscreen(false); }
     if (closeDemo) { closeDemo(); closeDemo = null; }
   }
   function end() {
@@ -1231,6 +1242,7 @@ body[data-page="day"]:is([data-dv="2d"],[data-dv="3d"]):not(.fsmode) .wrap>.mban
     if (step.ready) {
       if (!step.ready()) { timer = setTimeout(schedule,200); return; }
       get('#tourNext').disabled = false;
+      if (step.factory) { S.playing = false; playBtn(); }
       timer = setTimeout(next,1800);
     } else timer = setTimeout(next,step.duration);
   }
@@ -1239,8 +1251,9 @@ body[data-page="day"]:is([data-dv="2d"],[data-dv="3d"]):not(.fsmode) .wrap>.mban
     const step = steps[++index];
     if (!step) { end(); return; }
     step.action();
+    if (step.factory) setFactoryFullscreen(true);
     focus = get(step.selector) || document.querySelector('.wrap');
-    focus.scrollIntoView({block:'nearest',behavior:'instant'});
+    if (!step.factory) focus.scrollIntoView({block:'nearest',behavior:'instant'});
     get('#tourName').textContent = step.title;
     get('#tourData').textContent = step.describe();
     get('#tourNext').textContent = index === steps.length-1 ? '完成' : '下一步';
@@ -1262,6 +1275,7 @@ body[data-page="day"]:is([data-dv="2d"],[data-dv="3d"]):not(.fsmode) .wrap>.mban
       },'.dv-3d .stage',() => mode === 'after' ? '9/17 半程回放 · 08:00 至 13:55' : '9/17 全天回放 · 08:00 至 19:50');
       const step = steps.at(-1);
       step.fullDay = true;
+      step.factory = true;
       step.ready = () => S.t >= (mode === "after" ? (DAY.H0 + DAY.H1) / 2 : DAY.H1);
     }
     factory('before','導入前');
@@ -1270,6 +1284,7 @@ body[data-page="day"]:is([data-dv="2d"],[data-dv="3d"]):not(.fsmode) .wrap>.mban
     },'.bar .mode',() => get('#pNote').textContent);
     factory('after','導入後');
     add('導入後 · 2D 部門流程',() => { view('2d'); click('#restart'); },'.dv-2d .flowscroll',() => '追蹤導入後的插單通知、齊料與生產流程。',12000);
+    steps.at(-1).factory = true;
     add('導入後 · 基礎數據',() => view('kpi'),'.dv-kpi',() => '查看 SMT 產出、稼動率與交期。');
     add('單月回放',() => page('month'),'#mm',() => '觀察累計出貨與每日停機工時。',8500);
     add('子 DEMO 快速預覽',() => {
@@ -1360,12 +1375,24 @@ body[data-page="day"]:is([data-dv="2d"],[data-dv="3d"]):not(.fsmode) .wrap>.mban
     add('模擬班表',() => page('roster'),'#roster',() => '檢視各站負荷與月底尚需補足的工時。');
     next(); get('#tourPause').focus({preventScroll:true});
   }
-  get('#tourPreset').onclick = () => click('#pBest');
+  get("#quickEnableAll").onclick = () => {
+    const features = FEATURES.filter(f => f.id !== "kitsel" && HAS_DEMO(f));
+    setIds(features.map(f => f.id));
+    const pending = features.filter(f => !S.ids.includes(f.id)).map(f => f.name);
+    get("#quickPresetStatus").textContent = "已啟用 " + S.ids.length + " 項，排除選擇性齊套。" +
+      (pending.length ? "尚待確認：" + pending.join("、") + "。" : "");
+  };
+  for (const [button, preset] of [["#tourPreset", "#pBest"], ["#quickTargetPreset", "#pStd"]]) {
+    get(button).onclick = () => {
+      click(preset);
+      get("#quickPresetStatus").textContent = get("#pNote").textContent;
+    };
+  }
   get('#tourManual').onclick = () => ask.close();
   get('#tourStart').onclick = start;
   get('#tourNext').onclick = next;
   get('#tourEnd').onclick = end;
-  get('#tourPause').onclick = () => { paused = !paused; const step = steps[index]; if (step.fullDay && !step.ready()) { S.playing = !paused; playBtn(); } if (step.pause) step.pause(); get('#tourPause').textContent = paused ? '繼續導覽' : '暫停導覽'; schedule(); };
+  get('#tourPause').onclick = () => { paused = !paused; const step = steps[index]; if (step.factory && (!step.ready || !step.ready())) { S.playing = !paused; playBtn(); } if (step.pause) step.pause(); get('#tourPause').textContent = paused ? '繼續導覽' : '暫停導覽'; schedule(); };
   window.addEventListener('resize',frame);
   ask.showModal();
 })();

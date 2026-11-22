@@ -31,15 +31,21 @@ function rebuildDay(keepT) {
   if (document.body.dataset.dv === 'calc' && typeof renderCalc === 'function') renderCalc();
 }
 function setMode(m) {
-  if (m === 'after' && !S.ids.length) { S.ids = P1_IDS.slice(); onFeatures(); toast('已勾選第一階段：單一插單入口＋交期試算閘門'); }
+  if (m === 'after' && !S.ids.length) {
+    toast('尚未啟用功能。請點選底部「功能」啟用後，再查看導入後的預覽。');
+    return;
+  }
   const replayPage = document.body.dataset.page === 'day';
   S.mode = m; S.playing = replayPage && !REDUCED; S.auto = S.view === 'auto' || S.auto;
+  syncComparisonButtons(m);
+  rebuildDay(!replayPage); playBtn();
+}
+function syncComparisonButtons(m) {
   document.querySelectorAll('.mode button').forEach(button => {
     const active = button.dataset.m === m;
     button.classList.toggle('on', active);
     button.setAttribute('aria-pressed', String(active));
   });
-  rebuildDay(!replayPage); playBtn();
 }
 function isSlow(t) { return S.slow.some(w => t >= w[0] && t < w[1]); }
 function changedLines(P) { let n = 0; for (let l = 1; l <= LINES; l++) if (P.lines[l].segs.some(g => g.k === 'co')) n++; return n; }
@@ -278,15 +284,18 @@ function renderFeats() {
     box.innerHTML = '';
     featView().forEach(f => {
       const has = !!(f.demo || f.page);
+      const lineApp = ["intake", "gate", "nego", "realsched", "fair"].includes(f.id);
       const t = el('div', 'ftile ' + (has ? 'demo' : 'nodemo')); t.dataset.id = f.id;
+      t.classList.toggle("line-app", lineApp);
       t.tabIndex = 0; t.setAttribute('role', 'button'); t.setAttribute('aria-describedby', 'fh-' + f.id);
       t.setAttribute('aria-label', f.name + (has ? '：開啟 Demo' : '：尚無 Demo'));
       t.innerHTML = '<div class="ft-top"><span class="ft-ph">' + (f.phase === 1 ? '第一階段' : '第二階段') + '</span><span class="ft-lv" title="價值等級，T0 最高">T' + FEAT_LV[f.id] + '</span>' + (f.warn ? '<span class="ft-w" aria-hidden="true">⚠</span>' : '') + '</div>'
         + '<b class="ft-n">' + f.name + '</b>'
         + '<svg class="ft-i" viewBox="0 0 24 24" aria-hidden="true"><path d="' + f.icon + '"/></svg>'
         + '<button type="button" class="ft-sw" role="switch"><i></i></button>'
+        + (lineApp ? '<span class="ft-line-app">LINE APP</span>' : '')
         + '<span class="ft-st"></span>'
-        + '<span class="fh" id="fh-' + f.id + '" role="tooltip"><div>' + f.desc + '</div><div class="note">' + f.effect + '</div><div class="note">價值等級 T' + FEAT_LV[f.id] + '：' + FEAT_WHY[f.id] + '</div>' + (f.warn ? '<div class="note fwarn" data-w>⚠ ' + f.warn + '</div>' : '') + '<div class="note flab" data-lab></div></span>';
+        + '<span class="fh" id="fh-' + f.id + '" role="tooltip"><div>' + (lineApp ? '<strong>LINE APP 功能</strong><br>' : '') + f.desc + '</div><div class="note">' + f.effect + '</div><div class="note">價值等級 T' + FEAT_LV[f.id] + '：' + FEAT_WHY[f.id] + '</div>' + (f.warn ? '<div class="note fwarn" data-w>⚠ ' + f.warn + '</div>' : '') + '<div class="note flab" data-lab></div></span>';
       t.querySelector('.ft-sw').onclick = e => { e.stopPropagation(); toggleFeature(f); };
       t.onclick = () => openDemo(f);
       t.onkeydown = e => { if (e.target === t && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); openDemo(f); } };
@@ -446,7 +455,18 @@ $('#speed').addEventListener('change', e => {
   S.speed = +e.target.value;
   const replaySpeed = $('#rpSpeed'); if (replaySpeed) replaySpeed.value = e.target.value;
 });
-document.querySelectorAll('.mode button').forEach(b => b.addEventListener('click', () => setMode(b.dataset.m)));
+document.querySelectorAll('.mode button').forEach(b => b.addEventListener('click', () => {
+  if (document.body.dataset.page !== 'roster') {
+    setMode(b.dataset.m);
+    return;
+  }
+  RS7.view = b.dataset.m;
+  if (RS7.view === "after" && !S.ids.length) {
+    toast("尚未啟用功能。請點選「功能」或「建議配置」，再比較導入成效。");
+  }
+  syncComparisonButtons(RS7.view);
+  rosterRender();
+}));
 $('#factoryView').addEventListener('change', event => {
   S.view = event.target.value;
   S.auto = S.view === 'auto';
