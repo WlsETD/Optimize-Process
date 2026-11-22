@@ -110,7 +110,7 @@ function fitBar() {
 }
 window.addEventListener('resize', fitBar);
 if (window.ResizeObserver && document.querySelector('.bar')) new ResizeObserver(() => { alignDock(); fitBar(); }).observe(document.querySelector('.bar'));
-new MutationObserver(() => fitBar()).observe(document.querySelector('.bar'), { childList:true, subtree:true, characterData:true });
+new MutationObserver(() => fitBar()).observe(document.body, { attributes:true, attributeFilter:['data-page','data-dv','class'] });
 fitBar();
 document.body.dataset.dv = '3d';
 /* ===== 全螢幕預覽：3D 廠房／2D 部門流程都能放大，且在全螢幕裡可切換、可播放（鍵盤 F 進出，Esc 離開）===== */

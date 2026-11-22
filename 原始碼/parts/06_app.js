@@ -24,7 +24,7 @@ function rebuildDay(keepT) {
   S.other = S.mode === 'before' ? dayPlan(S.ids.length ? S.ids : P1_IDS, S.strength) : dayPlan([], 1);
   S.slow = S.events.filter(e => e.from && e.to && e.from !== e.to && OFFICE.has(e.from) && OFFICE.has(e.to)).map(e => [e.t - 0.02, e.t + e.dur + 0.05]);
   if (!keepT) S.t = DAY.H0;
-  $('#m-after').textContent = afterLabel();
+  $('.mode [data-m="after"]').title = '導入後：' + afterLabel();
   $('#h-mode').textContent = S.mode === 'before' ? '導入前：' + DAY.LABEL + ' 實際' : '導入後：' + afterLabel();
   $('#h-mode').className = 'm ' + S.mode;
   buildLower();

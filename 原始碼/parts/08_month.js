@@ -181,7 +181,7 @@ function mmBind() {
 /* ---------- 單日重播：切換日子 ---------- */
 function applyDayLabels() {
   $('#scopeDay .tl').textContent = '單日重播：' + DAY.LABEL;
-  $('#m-before').textContent = '導入前：' + DAY.LABEL + ' 實際';
+  $('.mode [data-m="before"]').title = '現狀：' + DAY.LABEL + ' 實際';
   $('#daysel').value = DAY.DATE;
   $('#daySelectLabel').textContent = DAY.LABEL;
 }

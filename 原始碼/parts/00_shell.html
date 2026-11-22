@@ -347,6 +347,9 @@ body:not([data-page="day"]) .bar>:not(:is(.day-select,.mode,#gofeat)){display:no
 body:not([data-page="day"]) .dock{left:auto;right:16px;bottom:16px}
 body:not([data-page="day"]):not([data-page="roster"]) .bar > .mode{display:none}
 .bar .mode button{display:inline-flex;align-items:center;justify-content:center;gap:4px}
+.bar .mode [hidden]{display:none!important}
+.bar #play{inline-size:calc(96px * var(--bz))}
+.bar .clock{font-variant-numeric:tabular-nums}
 .bar .mode svg{width:calc(17px * var(--bz));height:calc(17px * var(--bz));flex:none}
 body .wrap{padding-bottom:calc(var(--bh,56px) + 28px)}
 body .dock{left:var(--dock-l,auto);right:auto;bottom:calc(16px + (var(--bh,62px) - 48px) / 2)}
@@ -789,7 +792,7 @@ body[data-page="month"] .dock{display:none}
 .ft-sw:focus-visible{outline:2px solid currentColor;outline-offset:2px}
 .ft-st{font-size:10.5px;opacity:.78;white-space:nowrap;max-width:100%;overflow:hidden;text-overflow:ellipsis}
 /* 展開按鈕跟著播放列的寬度一起滑動 */
-.dock{transition:left .3s cubic-bezier(.2,.8,.2,1),bottom .3s cubic-bezier(.2,.8,.2,1)}
+
 .ftile .fh{animation:fhIn .3s ease-out}
 @keyframes fhIn{from{opacity:0}to{opacity:1}}
 @media (prefers-reduced-motion:reduce){.ftile,.ft-sw,.ft-sw i,.dock{transition:none}.ftile .fh{animation:none}}
@@ -918,11 +921,11 @@ body[data-page="day"]:is([data-dv="2d"],[data-dv="3d"]):not(.fsmode) .wrap>.mban
     <div class="seg dvseg" role="group" aria-label="預覽方式"><button type="button" data-dv="3d" class="on">3D 廠房</button><button type="button" data-dv="2d">2D 部門流程</button><button type="button" data-dv="calc">計算過程</button><button type="button" data-dv="kpi">基礎數據</button></div>
     <div class="day-select"><select id="daysel" aria-label="選擇重播日期"></select><span id="daySelectLabel" class="day-select-label" aria-hidden="true">9/17</span></div>
     <div class="seg mode" role="group" aria-label="做法">
-      <button type="button" data-m="before" class="on" aria-pressed="true" title="導入前 · 實際重播" aria-labelledby="m-before">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5m6-6-6 6 6 6"/></svg><span aria-hidden="true">導入前</span><span id="m-before" hidden>導入前：9/17 實際</span>
+      <button type="button" data-m="before" class="on" aria-pressed="true" title="現狀 · 實際重播">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5m6-6-6 6 6 6"/></svg><span>現狀</span>
       </button>
-      <button type="button" data-m="after" aria-pressed="false" title="導入後 · 模擬重播" aria-labelledby="mode-after-label">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14m-6-6 6 6-6 6"/></svg><span aria-hidden="true">導入後</span><span id="mode-after-label" hidden>導入後：<span id="m-after">先勾選功能</span></span>
+      <button type="button" data-m="after" aria-pressed="false" title="導入後 · 模擬重播">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14m-6-6 6 6-6 6"/></svg><span>導入後</span>
       </button>
     </div>
     <button type="button" class="btn pri" id="play">❚❚ 暫停</button>
@@ -935,7 +938,7 @@ body[data-page="day"]:is([data-dv="2d"],[data-dv="3d"]):not(.fsmode) .wrap>.mban
   <div class="dayg pg-day" id="dayg">
   <div class="fsbar" id="fsbar" role="toolbar" aria-label="全螢幕控制">
     <div class="seg fsseg" role="group" aria-label="預覽方式"><button type="button" data-fdv="3d">3D 廠房</button><button type="button" data-fdv="2d">2D 部門流程</button></div>
-    <div class="seg fsseg fsm" role="group" aria-label="做法"><button type="button" data-fm="before">導入前</button><button type="button" data-fm="after">導入後</button></div>
+    <div class="seg fsseg fsm" role="group" aria-label="做法"><button type="button" data-fm="before">現狀</button><button type="button" data-fm="after">導入後</button></div>
     <button type="button" class="btn pri" id="fsPlay">❚❚ 暫停</button>
     <button type="button" class="btn" id="fsRestart" title="從 08:00 重新開始">⟲ 重頭</button>
     <select id="fsSpeed" aria-label="速度"></select>
